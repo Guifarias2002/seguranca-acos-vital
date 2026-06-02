@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aços Vital — Sistema de Advertências</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --azul:#0d1f3c;--azul2:#162d52;--laranja:#e97b2e;--laranja2:#c96520;
+  --bg:#f0f2f5;--branco:#fff;--cinza:#64748b;--borda:#e2e8f0;
+  --verde:#059669;--amarelo:#d97706;--vermelho:#dc2626;
+}
+body{font-family:'Barlow',sans-serif;background:var(--bg);display:flex;min-height:100vh;font-size:14px}
+
+/* SIDEBAR */
+#sidebar{width:220px;min-height:100vh;background:var(--azul);display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:100}
+.logo{padding:18px 20px;border-bottom:1px solid var(--azul2)}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--laranja);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:14px;flex-shrink:0}
+.logo-name{font-weight:900;color:#fff;font-size:14px;letter-spacing:1px;text-transform:uppercase}
+.logo-sub{font-size:10px;font-weight:700;color:var(--laranja);text-transform:uppercase;letter-spacing:1.5px;margin-top:5px;padding-left:42px}
+nav{flex:1;padding:14px 10px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;color:#7a9cc4;font-weight:700;font-size:13px;cursor:pointer;margin-bottom:2px;transition:all .2s;border:none;background:none;width:100%;text-align:left;font-family:'Barlow',sans-serif}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:var(--laranja);color:#fff}
+.nav-icon{width:20px;text-align:center;font-size:15px}
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--azul2)}
+.sidebar-footer p{font-size:10px;color:#2a4a6a}
+
+/* MAIN */
+#main{margin-left:220px;flex:1;min-width:0}
+.page-header{background:var(--azul);padding:22px 32px;border-bottom:1px solid var(--azul2);display:flex;align-items:center;justify-content:space-between}
+.page-header h1{font-size:20px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:1px}
+.page-header p{font-size:12px;color:#7a9cc4;margin-top:2px}
+.content{padding:24px 32px}
+.page{display:none}.page.active{display:block}
+
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.card{border-radius:14px;padding:18px}
+.card-dark{background:var(--azul)}.card-yellow{background:#fff8e1;border:1px solid #fde68a}
+.card-orange{background:#fff3e6;border:1px solid #fed7aa}.card-red{background:#fde8e8;border:1px solid #fecaca}
+.card-green{background:#ecfdf5;border:1px solid #6ee7b7}.card-blue{background:#eff6ff;border:1px solid #bfdbfe}
+.card-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px}
+.card-dark .card-label{color:var(--laranja)}.card-yellow .card-label{color:#d97706}
+.card-orange .card-label{color:#c2410c}.card-red .card-label{color:#b91c1c}
+.card-green .card-label{color:#059669}.card-blue .card-label{color:#1d4ed8}
+.card-num{font-size:42px;font-weight:900;line-height:1}
+.card-dark .card-num{color:#fff}.card-yellow .card-num{color:#f59e0b}
+.card-orange .card-num{color:#f97316}.card-red .card-num{color:#ef4444}
+.card-green .card-num{color:#059669}.card-blue .card-num{color:#3b82f6}
+.card-sub{font-size:11px;margin-top:6px;opacity:.7}
+.card-dark .card-sub{color:#fff}.card-yellow .card-sub{color:#92400e}
+.card-orange .card-sub{color:#9a3412}.card-red .card-sub{color:#991b1b}
+
+/* FILTROS DASHBOARD */
+.dash-filtros{background:var(--branco);border-radius:14px;padding:14px 18px;margin-bottom:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.dash-filtros select,.dash-filtros input{border:1.5px solid var(--borda);border-radius:10px;padding:7px 12px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;background:#fafbfc;color:var(--azul)}
+.dash-filtros select:focus,.dash-filtros input:focus{border-color:var(--laranja)}
+.dash-filtros label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--azul);white-space:nowrap}
+.btn-limpar{background:none;border:none;color:var(--laranja);font-weight:700;font-size:13px;cursor:pointer;font-family:'Barlow',sans-serif}
+.btn-aplicar{background:var(--laranja);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif}
+
+/* GRID */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-full{margin-bottom:16px}
+.box{background:var(--branco);border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.box-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--azul);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+
+/* CHARTS */
+.chart-wrap{position:relative;height:220px}
+canvas{max-height:220px}
+
+/* TABELAS */
+.table-wrap{background:var(--branco);border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden;margin-bottom:16px}
+.table-header{background:var(--azul);padding:11px 18px;display:flex;justify-content:space-between;align-items:center}
+.table-header span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#f8f9fa;padding:10px 14px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--azul);border-bottom:1px solid var(--borda)}
+td{padding:10px 14px;border-bottom:1px solid #f5f5f5;color:#444}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbfc}
+.badge-tipo{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.badge-verbal{background:#fff8e6;color:#b45309}
+.badge-escrita{background:#fff3e6;color:#c2410c}
+.badge-suspensao{background:#fde8e8;color:#b91c1c}
+
+/* ALERTAS */
+.alerta-box{border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.alerta-danger{background:#fde8e8;border-left:4px solid #ef4444}
+.alerta-warn{background:#fff8e6;border-left:4px solid #f59e0b}
+.alerta-icon{font-size:18px}
+.alerta-text{font-size:13px;font-weight:600;color:var(--azul)}
+.alerta-sub{font-size:11px;color:#888;margin-top:2px}
+
+/* HEATMAP */
+.heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.heatmap-day{border-radius:6px;padding:8px 4px;text-align:center;font-size:11px;font-weight:700}
+.heatmap-label{font-size:10px;color:#888;text-align:center;padding:4px 0;font-weight:700;text-transform:uppercase}
+
+/* RANKING */
+.rank-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+.rank-item:last-child{border-bottom:none}
+.rank-pos{width:24px;height:24px;border-radius:50%;background:var(--azul);color:#fff;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-pos.gold{background:#f59e0b}.rank-pos.silver{background:#94a3b8}.rank-pos.bronze{background:#cd7c2f}
+.rank-bar-wrap{flex:1}
+.rank-nome{font-weight:700;font-size:13px;color:var(--azul);margin-bottom:4px}
+.rank-track{height:6px;background:#f0f2f5;border-radius:6px;overflow:hidden}
+.rank-fill{height:100%;border-radius:6px}
+.rank-num{font-weight:900;font-size:15px;color:var(--laranja);flex-shrink:0}
+
+/* MOTIVOS */
+.motivo-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5}
+.motivo-item:last-child{border-bottom:none}
+.motivo-texto{flex:1;font-size:12px;color:#444;line-height:1.4}
+.motivo-count{font-size:13px;font-weight:900;color:var(--laranja);flex-shrink:0}
+
+/* COMPARATIVO */
+.comp-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5}
+.comp-label{font-size:12px;color:#666}
+.comp-values{display:flex;align-items:center;gap:12px}
+.comp-val{font-weight:700;font-size:13px}
+.comp-delta{font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px}
+.delta-up{background:#fde8e8;color:#b91c1c}
+.delta-down{background:#ecfdf5;color:#059669}
+.delta-same{background:#f0f2f5;color:#666}
+
+/* FORM */
+.filtros{background:var(--branco);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.filtros input,.filtros select{border:1.5px solid var(--borda);border-radius:10px;padding:8px 12px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;background:#fafbfc;color:var(--azul)}
+.filtros input{flex:1;min-width:180px}
+.filtros input:focus,.filtros select:focus{border-color:var(--laranja)}
+.form-box{background:var(--branco);border-radius:16px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,.06);max-width:680px}
+.form-group{margin-bottom:20px}
+.form-label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--azul);margin-bottom:7px}
+.form-input{width:100%;border:1.5px solid var(--borda);border-radius:10px;padding:10px 14px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;background:#fafbfc;color:var(--azul)}
+.form-input:focus{border-color:var(--laranja)}
+textarea.form-input{resize:none}
+.tipo-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tipo-btn{border:2px solid var(--borda);border-radius:12px;padding:12px;font-weight:700;font-size:13px;cursor:pointer;background:#fafbfc;color:#888;font-family:'Barlow',sans-serif;transition:all .2s}
+.tipo-btn.sel-verbal{background:#f59e0b;border-color:#f59e0b;color:#fff}
+.tipo-btn.sel-escrita{background:#f97316;border-color:#f97316;color:#fff}
+.tipo-btn.sel-suspensao{background:#ef4444;border-color:#ef4444;color:#fff}
+.btn-submit{width:100%;background:var(--laranja);color:#fff;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:800;font-family:'Barlow',sans-serif;cursor:pointer;text-transform:uppercase;letter-spacing:1px;transition:background .2s}
+.btn-submit:hover{background:var(--laranja2)}.btn-submit:disabled{background:#ccc;cursor:not-allowed}
+.alert-ok{background:#e6f9f0;border:1.5px solid #34d399;border-radius:12px;padding:14px 18px;color:#065f46;font-weight:700;font-size:14px;margin-bottom:20px;display:none}
+.search-results{border:1.5px solid var(--borda);border-radius:10px;overflow:hidden;max-height:200px;overflow-y:auto;margin-top:4px;background:#fff}
+.search-item{padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f5f5f5;transition:background .15s}
+.search-item:hover{background:#fff8f0}
+.search-setor{font-size:11px;background:#f0f2f5;color:#666;padding:2px 8px;border-radius:6px}
+
+/* IMPORTAR */
+.upload-zone{border:2.5px dashed var(--laranja);background:#fff8f0;border-radius:16px;padding:40px;text-align:center;cursor:pointer;margin-bottom:20px}
+.upload-zone:hover{background:#fff0e0}
+.upload-icon{font-size:48px;margin-bottom:12px}
+.upload-title{font-size:18px;font-weight:800;color:var(--azul);margin-bottom:6px}
+.upload-sub{font-size:13px;color:#aaa}
+#fileInput{display:none}
+.btn-importar{background:var(--laranja);color:#fff;border:none;border-radius:12px;padding:12px 28px;font-size:14px;font-weight:800;font-family:'Barlow',sans-serif;cursor:pointer;text-transform:uppercase;letter-spacing:1px;margin-top:16px}
+.progress-bar{height:10px;background:#f0f2f5;border-radius:10px;overflow:hidden;margin:16px 0}
+.progress-fill{height:100%;background:var(--laranja);border-radius:10px;transition:width .3s}
+.resumo-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.resumo-card{border-radius:12px;padding:16px;text-align:center}
+.resumo-ok{background:#e6f9f0}.resumo-dup{background:#fff8e6}.resumo-err{background:#fde8e8}
+.resumo-num{font-size:36px;font-weight:900}
+.resumo-ok .resumo-num{color:#059669}.resumo-dup .resumo-num{color:#d97706}.resumo-err .resumo-num{color:#dc2626}
+.resumo-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.resumo-ok .resumo-label{color:#059669}.resumo-dup .resumo-label{color:#d97706}.resumo-err .resumo-label{color:#dc2626}
+
+/* COLABORADORES */
+.colab-grid{display:grid;grid-template-columns:260px 1fr;gap:20px}
+.colab-lista{background:var(--branco);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);max-height:75vh;overflow-y:auto}
+.colab-item{padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f5f5f5;border-left:3px solid transparent}
+.colab-item:hover{background:#fafbfc}.colab-item.active{background:#fff8f0;border-left-color:var(--laranja)}
+.colab-nome{font-weight:700;font-size:13px;color:var(--azul)}.colab-setor-tag{font-size:11px;color:#888;margin-top:2px}
+.colab-count{font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px}
+.count-1{background:#fff8e6;color:#b45309}.count-2{background:#fff3e6;color:#c2410c}.count-3plus{background:#fde8e8;color:#b91c1c}
+.detalhe-header{background:var(--azul);padding:20px 24px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center}
+.detalhe-nome{font-size:17px;font-weight:900;color:#fff}.detalhe-setor{font-size:12px;color:#7a9cc4;margin-top:2px}
+.detalhe-counters{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid #f0f2f5}
+.detalhe-counter{padding:14px;text-align:center;border-right:1px solid #f0f2f5}.detalhe-counter:last-child{border-right:none}
+.detalhe-counter-num{font-size:26px;font-weight:900}.detalhe-counter-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-top:4px;color:#888}
+.timeline{padding:16px 20px;max-height:280px;overflow-y:auto}
+.timeline-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+.timeline-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.dot-verbal{background:#f59e0b}.dot-escrita{background:#f97316}.dot-suspensao{background:#ef4444}
+.setor-bar{margin-bottom:12px}
+.setor-bar-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.setor-bar-nome{font-weight:600;color:var(--azul)}.setor-bar-num{font-weight:900;color:var(--laranja)}
+.setor-bar-track{height:7px;background:#f0f2f5;border-radius:7px;overflow:hidden}
+.setor-bar-fill{height:100%;border-radius:7px}
+.empty{padding:30px;text-align:center;color:#aaa;font-size:13px}
+.recente-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f5f5f5}
+.recente-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.recente-nome{font-weight:700;font-size:13px;color:var(--azul)}.recente-info{font-size:11px;color:#888}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-row">
+      <div class="logo-icon">A</div>
+      <span class="logo-name">AçosVital</span>
+    </div>
+    <div class="logo-sub">Segurança do Trabalho</div>
+  </div>
+  <nav>
+    <button class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">▣</span> Dashboard</button>
+    <button class="nav-item" onclick="showPage('analises',this)"><span class="nav-icon">📈</span> Análises</button>
+    <button class="nav-item" onclick="showPage('registrar',this)"><span class="nav-icon">+</span> Registrar</button>
+    <button class="nav-item" onclick="showPage('historico',this)"><span class="nav-icon">≡</span> Histórico</button>
+    <button class="nav-item" onclick="showPage('colaboradores',this)"><span class="nav-icon">◉</span> Colaboradores</button>
+    <button class="nav-item" onclick="showPage('importar',this)"><span class="nav-icon">↑</span> Importar Excel</button>
+  </nav>
+  <div class="sidebar-footer"><p>Sistema de Advertências</p><p>v2.0 · 2026</p></div>
+</div>
+
+<div id="main">
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="page-header">
+      <div><h1>Dashboard</h1><p>Visão geral das advertências registradas</p></div>
+      <div style="background:var(--laranja);color:#fff;font-weight:800;font-size:13px;padding:8px 16px;border-radius:10px" id="badge-total">⚠ 0 registros</div>
+    </div>
+    <div class="content">
+      <!-- Filtros -->
+      <div class="dash-filtros">
+        <label>Mês</label>
+        <select id="f-mes" onchange="aplicarFiltros()">
+          <option value="">Todos os meses</option>
+          <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+          <option value="03">Março</option><option value="04">Abril</option>
+          <option value="05">Maio</option><option value="06">Junho</option>
+          <option value="07">Julho</option><option value="08">Agosto</option>
+          <option value="09">Setembro</option><option value="10">Outubro</option>
+          <option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+        <label>Ano</label>
+        <select id="f-ano" onchange="aplicarFiltros()">
+          <option value="">Todos</option>
+          <option value="2025">2025</option><option value="2026">2026</option>
+        </select>
+        <label>De</label>
+        <input type="date" id="f-de" onchange="aplicarFiltros()">
+        <label>Até</label>
+        <input type="date" id="f-ate" onchange="aplicarFiltros()">
+        <label>Setor</label>
+        <select id="f-setor-dash" onchange="aplicarFiltros()">
+          <option value="">Todos</option>
+        </select>
+        <button class="btn-limpar" onclick="limparFiltrosDash()">Limpar</button>
+      </div>
+
+      <!-- Cards -->
+      <div class="cards">
+        <div class="card card-dark">
+          <div class="card-label">Total</div>
+          <div class="card-num" id="d-total">0</div>
+          <div class="card-sub" id="d-media">Média: — /mês</div>
+        </div>
+        <div class="card card-yellow">
+          <div class="card-label">Verbais</div>
+          <div class="card-num" id="d-verbal">0</div>
+          <div class="card-sub" id="d-verbal-pct">—%</div>
+        </div>
+        <div class="card card-orange">
+          <div class="card-label">Escritas</div>
+          <div class="card-num" id="d-escrita">0</div>
+          <div class="card-sub" id="d-escrita-pct">—%</div>
+        </div>
+        <div class="card card-red">
+          <div class="card-label">Suspensões</div>
+          <div class="card-num" id="d-suspensao">0</div>
+          <div class="card-sub" id="d-suspensao-pct">—%</div>
+        </div>
+      </div>
+
+      <!-- Comparativo + Indicadores -->
+      <div class="grid3">
+        <div class="box">
+          <div class="box-title">🏆 Setor mais crítico</div>
+          <div id="d-setor-critico"><div class="empty">—</div></div>
+        </div>
+        <div class="box">
+          <div class="box-title">👷 Mais ocorrências</div>
+          <div id="d-colab-top"><div class="empty">—</div></div>
+        </div>
+        <div class="box">
+          <div class="box-title">⚠️ Reincidentes no período</div>
+          <div id="d-reincidentes"><div class="empty">Nenhum</div></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="box">
+          <div class="box-title">Setores com mais ocorrências</div>
+          <div id="d-setores"><div class="empty">Nenhum dado ainda</div></div>
+        </div>
+        <div class="box">
+          <div class="box-title">Últimas advertências</div>
+          <div id="d-recentes"><div class="empty">Nenhuma registrada ainda</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANÁLISES -->
+  <div id="page-analises" class="page">
+    <div class="page-header">
+      <div><h1>Análises</h1><p>Gráficos e indicadores detalhados</p></div>
+    </div>
+    <div class="content">
+      <!-- Filtros análise -->
+      <div class="dash-filtros">
+        <label>Mês</label>
+        <select id="a-mes" onchange="renderAnalises()">
+          <option value="">Todos</option>
+          <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+          <option value="03">Março</option><option value="04">Abril</option>
+          <option value="05">Maio</option><option value="06">Junho</option>
+          <option value="07">Julho</option><option value="08">Agosto</option>
+          <option value="09">Setembro</option><option value="10">Outubro</option>
+          <option value="11">Novembro</option><option value="12">Dezembro</option>
+        </select>
+        <label>Ano</label>
+        <select id="a-ano" onchange="renderAnalises()">
+          <option value="">Todos</option>
+          <option value="2025">2025</option><option value="2026">2026</option>
+        </select>
+        <label>Setor</label>
+        <select id="a-setor" onchange="renderAnalises()"><option value="">Todos</option></select>
+        <button class="btn-limpar" onclick="limparFiltrosAnalise()">Limpar</button>
+      </div>
+
+      <div class="grid2">
+        <div class="box">
+          <div class="box-title">📊 Advertências por mês</div>
+          <div class="chart-wrap"><canvas id="chart-mensal"></canvas></div>
+        </div>
+        <div class="box">
+          <div class="box-title">🥧 Distribuição por tipo</div>
+          <div class="chart-wrap"><canvas id="chart-tipo"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="box">
+          <div class="box-title">📈 Evolução mensal (linha)</div>
+          <div class="chart-wrap"><canvas id="chart-evolucao"></canvas></div>
+        </div>
+        <div class="box">
+          <div class="box-title">🏭 Advertências por setor</div>
+          <div class="chart-wrap"><canvas id="chart-setor"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="box">
+          <div class="box-title">👷 Ranking de reincidentes</div>
+          <div id="ranking-reincidentes"><div class="empty">Nenhum dado</div></div>
+        </div>
+        <div class="box">
+          <div class="box-title">📋 Motivos mais frequentes</div>
+          <div id="top-motivos"><div class="empty">Nenhum dado</div></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="box">
+          <div class="box-title">📅 Dia da semana com mais ocorrências</div>
+          <div id="heatmap-semana"></div>
+        </div>
+        <div class="box">
+          <div class="box-title">🔄 Comparativo mês atual vs anterior</div>
+          <div id="comparativo"></div>
+        </div>
+      </div>
+
+      <!-- Alertas -->
+      <div class="box">
+        <div class="box-title">🚨 Alertas de reincidência</div>
+        <div id="alertas-lista"><div class="empty">Nenhum alerta</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTRAR -->
+  <div id="page-registrar" class="page">
+    <div class="page-header"><div><h1>Registrar Advertência</h1><p>Preencha os dados para registrar uma ocorrência</p></div></div>
+    <div class="content">
+      <div class="alert-ok" id="alert-ok">✓ Advertência registrada com sucesso!</div>
+      <div class="form-box">
+        <div class="form-group">
+          <label class="form-label">Colaborador</label>
+          <input type="text" class="form-input" id="busca-colab" placeholder="Buscar por nome..." oninput="buscarColab()" autocomplete="off">
+          <div id="resultados-colab" class="search-results" style="display:none"></div>
+          <input type="hidden" id="colab-id-sel">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Setor</label>
+          <input type="text" class="form-input" id="setor-input" placeholder="Setor do colaborador" readonly>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data da advertência</label>
+          <input type="date" class="form-input" id="data-input" style="width:auto">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <div class="tipo-btns">
+            <button class="tipo-btn sel-verbal" onclick="selTipo('verbal',this)">Verbal</button>
+            <button class="tipo-btn" onclick="selTipo('escrita',this)">Escrita</button>
+            <button class="tipo-btn" onclick="selTipo('suspensao',this)">Suspensão</button>
+          </div>
+          <input type="hidden" id="tipo-sel" value="verbal">
+        </div>
+        <div class="form-group" id="dias-group" style="display:none">
+          <label class="form-label">Dias de suspensão</label>
+          <input type="number" class="form-input" id="dias-input" min="1" placeholder="ex: 1" style="width:100px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Motivo</label>
+          <textarea class="form-input" id="motivo-input" rows="3" placeholder="Descreva o motivo..."></textarea>
+        </div>
+        <button class="btn-submit" id="btn-registrar" onclick="registrar()">⚠ Registrar Advertência</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div id="page-historico" class="page">
+    <div class="page-header"><div><h1>Histórico</h1><p>Todas as advertências registradas</p></div></div>
+    <div class="content">
+      <div class="filtros">
+        <input type="text" id="hf-busca" placeholder="Buscar colaborador ou motivo..." oninput="renderHistorico()">
+        <select id="hf-tipo" onchange="renderHistorico()">
+          <option value="">Todos os tipos</option>
+          <option value="verbal">Verbal</option><option value="escrita">Escrita</option><option value="suspensao">Suspensão</option>
+        </select>
+        <select id="hf-setor" onchange="renderHistorico()"><option value="">Todos os setores</option></select>
+        <select id="hf-mes" onchange="renderHistorico()">
+          <option value="">Todos os meses</option>
+          <option value="01">Jan</option><option value="02">Fev</option><option value="03">Mar</option>
+          <option value="04">Abr</option><option value="05">Mai</option><option value="06">Jun</option>
+          <option value="07">Jul</option><option value="08">Ago</option><option value="09">Set</option>
+          <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+        </select>
+        <button class="btn-limpar" onclick="limparFiltrosH()">Limpar</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><span id="h-count">0 registros</span></div>
+        <div style="overflow-x:auto">
+          <table><thead><tr><th>Data</th><th>Colaborador</th><th>Setor</th><th>Tipo</th><th>Motivo</th></tr></thead>
+          <tbody id="tbody-historico"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLABORADORES -->
+  <div id="page-colaboradores" class="page">
+    <div class="page-header"><div><h1>Colaboradores</h1><p>Histórico de advertências por pessoa</p></div></div>
+    <div class="content">
+      <div style="margin-bottom:12px">
+        <input type="text" class="form-input" id="busca-colab-pag" placeholder="Buscar colaborador..." oninput="renderColabLista()" style="max-width:260px">
+      </div>
+      <div class="colab-grid">
+        <div class="colab-lista" id="colab-lista"></div>
+        <div id="colab-detalhe" class="box" style="display:flex;align-items:center;justify-content:center;color:#aaa;font-size:13px">
+          Selecione um colaborador para ver o histórico
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORTAR -->
+  <div id="page-importar" class="page">
+    <div class="page-header"><div><h1>Importar Planilha</h1><p>Carregue o Excel para atualizar os registros automaticamente</p></div></div>
+    <div class="content" style="max-width:720px">
+      <div id="import-etapa-upload">
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">Clique para selecionar a planilha</div>
+          <div class="upload-sub">Aceita .xlsx e .xls</div>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="carregarPlanilha(event)">
+      </div>
+      <div id="import-etapa-preview" style="display:none">
+        <div class="table-wrap" style="margin-bottom:16px">
+          <div class="table-header" style="justify-content:space-between">
+            <span id="preview-count">0 registros</span>
+            <button class="btn-importar" style="margin-top:0;padding:8px 20px" onclick="importarTodos()">⬆ Importar tudo</button>
+          </div>
+          <div style="max-height:320px;overflow-y:auto;overflow-x:auto">
+            <table><thead><tr><th>Data</th><th>Colaborador</th><th>Setor</th><th>Tipo</th><th>Motivo</th></tr></thead>
+            <tbody id="tbody-preview"></tbody></table>
+          </div>
+        </div>
+        <button onclick="resetImport()" style="background:none;border:none;color:var(--laranja);font-weight:700;cursor:pointer;font-size:13px;font-family:'Barlow',sans-serif">← Escolher outro arquivo</button>
+      </div>
+      <div id="import-etapa-progresso" style="display:none">
+        <div class="box" style="text-align:center;padding:40px">
+          <div style="font-size:40px;margin-bottom:12px">⏳</div>
+          <div style="font-size:18px;font-weight:900;color:var(--azul);margin-bottom:16px">Importando...</div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+          <div style="font-size:13px;color:#aaa" id="progress-txt">0%</div>
+        </div>
+      </div>
+      <div id="import-etapa-concluido" style="display:none">
+        <div class="box" style="margin-bottom:16px">
+          <div style="font-size:16px;font-weight:900;color:var(--azul);margin-bottom:16px">✅ Importação concluída!</div>
+          <div class="resumo-cards">
+            <div class="resumo-card resumo-ok"><div class="resumo-num" id="r-ok">0</div><div class="resumo-label">Importados</div></div>
+            <div class="resumo-card resumo-dup"><div class="resumo-num" id="r-dup">0</div><div class="resumo-label">Duplicados</div></div>
+            <div class="resumo-card resumo-err"><div class="resumo-num" id="r-err">0</div><div class="resumo-label">Erros</div></div>
+          </div>
+        </div>
+        <button onclick="resetImport()" class="btn-importar" style="background:var(--azul)">Importar outro arquivo</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPA_URL='https://jvssmycnsiyqowlohayx.supabase.co'
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2c3NteWNuc2l5cW93bG9oYXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMzQ5NTUsImV4cCI6MjA5NTkxMDk1NX0.N0ZIl3_2bQ9EeezjEJxIPptDWjtyJnOT2zUQUcquADc'
+
+async function supa(path,opts={}){
+  const r=await fetch(SUPA_URL+'/rest/v1/'+path,{
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':opts.prefer||'',...opts.headers},
+    ...opts
+  })
+  if(!r.ok){const e=await r.text();throw new Error(e)}
+  if(r.status===204)return null
+  return r.json()
+}
+
+let advertencias=[],colaboradores=[],setores=[],previewData=[]
+let tipoSel='verbal',colabSel=null,colabDetalheSel=null
+let charts={}
+
+const LABELS={verbal:'Verbal',escrita:'Escrita',suspensao:'Suspensão'}
+const CORES={verbal:'#f59e0b',escrita:'#f97316',suspensao:'#ef4444'}
+const BG={verbal:'#fff8e6',escrita:'#fff3e6',suspensao:'#fde8e8'}
+const TC={verbal:'#b45309',escrita:'#c2410c',suspensao:'#b91c1c'}
+const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+const DIAS_SEMANA=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+
+async function init(){
+  document.getElementById('data-input').value=new Date().toISOString().split('T')[0]
+  await carregarDados()
+}
+
+async function carregarDados(){
+  try{
+    const[adv,colab,set]=await Promise.all([
+      supa('advertencias_view?select=*&order=data.desc'),
+      supa('colaboradores?select=*,setores(nome)&eq.ativo=true&order=nome'),
+      supa('setores?select=*&order=nome')
+    ])
+    advertencias=adv||[];colaboradores=colab||[];setores=set||[]
+    renderSetoresFiltros()
+    aplicarFiltros()
+    renderHistorico()
+    renderColabLista()
+  }catch(e){console.error(e)}
+}
+
+function filtrarDados(){
+  const mes=document.getElementById('f-mes')?.value||''
+  const ano=document.getElementById('f-ano')?.value||''
+  const de=document.getElementById('f-de')?.value||''
+  const ate=document.getElementById('f-ate')?.value||''
+  const setor=document.getElementById('f-setor-dash')?.value||''
+  return advertencias.filter(a=>{
+    const d=a.data||''
+    if(mes&&!d.includes('-'+mes+'-'))return false
+    if(ano&&!d.startsWith(ano))return false
+    if(de&&d<de)return false
+    if(ate&&d>ate)return false
+    if(setor&&a.setor!==setor)return false
+    return true
+  })
+}
+
+function filtrarAnalise(){
+  const mes=document.getElementById('a-mes')?.value||''
+  const ano=document.getElementById('a-ano')?.value||''
+  const setor=document.getElementById('a-setor')?.value||''
+  return advertencias.filter(a=>{
+    const d=a.data||''
+    if(mes&&!d.includes('-'+mes+'-'))return false
+    if(ano&&!d.startsWith(ano))return false
+    if(setor&&a.setor!==setor)return false
+    return true
+  })
+}
+
+function aplicarFiltros(){
+  const dados=filtrarDados()
+  renderDashboard(dados)
+}
+
+function renderDashboard(dados){
+  if(!dados)dados=filtrarDados()
+  const total=dados.length
+  const verbal=dados.filter(a=>a.tipo==='verbal').length
+  const escrita=dados.filter(a=>a.tipo==='escrita').length
+  const suspensao=dados.filter(a=>a.tipo==='suspensao').length
+
+  document.getElementById('d-total').textContent=total
+  document.getElementById('d-verbal').textContent=verbal
+  document.getElementById('d-escrita').textContent=escrita
+  document.getElementById('d-suspensao').textContent=suspensao
+  document.getElementById('badge-total').textContent=`⚠ ${total} registro${total!==1?'s':''}`
+
+  const pct=n=>total>0?Math.round(n/total*100)+'%':'—%'
+  document.getElementById('d-verbal-pct').textContent=pct(verbal)+' do total'
+  document.getElementById('d-escrita-pct').textContent=pct(escrita)+' do total'
+  document.getElementById('d-suspensao-pct').textContent=pct(suspensao)+' do total'
+
+  // Média por mês
+  const mesesUniq=[...new Set(dados.map(a=>a.data?.substring(0,7)))].filter(Boolean)
+  const media=mesesUniq.length>0?Math.round(total/mesesUniq.length*10)/10:0
+  document.getElementById('d-media').textContent=`Média: ${media}/mês`
+
+  // Setor mais crítico
+  const setorMap={}; dados.forEach(a=>{setorMap[a.setor]=(setorMap[a.setor]||0)+1})
+  const topSetor=Object.entries(setorMap).sort((a,b)=>b[1]-a[1])[0]
+  document.getElementById('d-setor-critico').innerHTML=topSetor
+    ?`<div style="text-align:center;padding:16px"><div style="font-size:32px;font-weight:900;color:#e97b2e">${topSetor[1]}</div><div style="font-weight:700;color:#0d1f3c;font-size:14px;margin-top:4px">${topSetor[0]}</div><div style="font-size:11px;color:#888">ocorrências</div></div>`
+    :'<div class="empty">—</div>'
+
+  // Colab top
+  const colabMap={}; dados.forEach(a=>{colabMap[a.colaborador]=(colabMap[a.colaborador]||0)+1})
+  const topColab=Object.entries(colabMap).sort((a,b)=>b[1]-a[1])[0]
+  document.getElementById('d-colab-top').innerHTML=topColab
+    ?`<div style="text-align:center;padding:16px"><div style="font-size:32px;font-weight:900;color:#ef4444">${topColab[1]}</div><div style="font-weight:700;color:#0d1f3c;font-size:13px;margin-top:4px">${topColab[0]}</div><div style="font-size:11px;color:#888">advertências</div></div>`
+    :'<div class="empty">—</div>'
+
+  // Reincidentes
+  const reinc=Object.entries(colabMap).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]).slice(0,4)
+  document.getElementById('d-reincidentes').innerHTML=reinc.length===0
+    ?'<div class="empty">Nenhum</div>'
+    :reinc.map(([nome,qtd])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:12px">
+        <span style="font-weight:600;color:#0d1f3c">${nome}</span>
+        <span style="font-weight:900;color:${qtd>=3?'#ef4444':'#f97316'}">${qtd}</span></div>`).join('')
+
+  // Setores
+  const top5=Object.entries(setorMap).sort((a,b)=>b[1]-a[1]).slice(0,5)
+  const maxV=top5[0]?.[1]||1
+  document.getElementById('d-setores').innerHTML=top5.length===0
+    ?'<div class="empty">Nenhum dado</div>'
+    :top5.map(([nome,qtd],i)=>`<div class="setor-bar">
+        <div class="setor-bar-top"><span class="setor-bar-nome">${nome}</span><span class="setor-bar-num">${qtd}</span></div>
+        <div class="setor-bar-track"><div class="setor-bar-fill" style="width:${(qtd/maxV)*100}%;background:${i===0?'#e97b2e':'#0d1f3c'}"></div></div>
+      </div>`).join('')
+
+  // Recentes
+  const rec=dados.slice(0,6)
+  document.getElementById('d-recentes').innerHTML=rec.length===0
+    ?'<div class="empty">Nenhuma registrada ainda</div>'
+    :rec.map(a=>`<div class="recente-item">
+        <div class="recente-dot" style="background:${CORES[a.tipo]}"></div>
+        <div style="flex:1;min-width:0">
+          <div class="recente-nome">${a.colaborador}</div>
+          <div class="recente-info">${a.setor}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <span class="badge-tipo badge-${a.tipo}">${LABELS[a.tipo]}</span>
+          <div style="font-size:11px;color:#aaa;margin-top:2px">${fmtData(a.data)}</div>
+        </div></div>`).join('')
+}
+
+function renderAnalises(){
+  const dados=filtrarAnalise()
+
+  // Chart mensal (barras empilhadas)
+  const ultimos8=Array.from({length:8},(_,i)=>{
+    const d=new Date(); d.setMonth(d.getMonth()-7+i)
+    const chave=d.toISOString().substring(0,7)
+    return{
+      nome:MESES[d.getMonth()],
+      verbal:dados.filter(a=>a.data?.startsWith(chave)&&a.tipo==='verbal').length,
+      escrita:dados.filter(a=>a.data?.startsWith(chave)&&a.tipo==='escrita').length,
+      suspensao:dados.filter(a=>a.data?.startsWith(chave)&&a.tipo==='suspensao').length,
+    }
+  })
+  destroyChart('chart-mensal')
+  charts['chart-mensal']=new Chart(document.getElementById('chart-mensal'),{
+    type:'bar',
+    data:{labels:ultimos8.map(m=>m.nome),datasets:[
+      {label:'Verbal',data:ultimos8.map(m=>m.verbal),backgroundColor:'#f59e0b',borderRadius:4},
+      {label:'Escrita',data:ultimos8.map(m=>m.escrita),backgroundColor:'#f97316',borderRadius:4},
+      {label:'Suspensão',data:ultimos8.map(m=>m.suspensao),backgroundColor:'#ef4444',borderRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:11}}},y:{stacked:true,beginAtZero:true,ticks:{stepSize:1,font:{size:11}},grid:{color:'#f0f2f5'}}}}
+  })
+
+  // Pizza
+  const v=dados.filter(a=>a.tipo==='verbal').length
+  const e=dados.filter(a=>a.tipo==='escrita').length
+  const s=dados.filter(a=>a.tipo==='suspensao').length
+  destroyChart('chart-tipo')
+  if(v+e+s>0){
+    charts['chart-tipo']=new Chart(document.getElementById('chart-tipo'),{
+      type:'doughnut',
+      data:{labels:['Verbal','Escrita','Suspensão'],datasets:[{data:[v,e,s],backgroundColor:['#f59e0b','#f97316','#ef4444'],borderWidth:0,hoverOffset:6}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
+    })
+  }
+
+  // Linha evolução
+  destroyChart('chart-evolucao')
+  charts['chart-evolucao']=new Chart(document.getElementById('chart-evolucao'),{
+    type:'line',
+    data:{labels:ultimos8.map(m=>m.nome),datasets:[
+      {label:'Total',data:ultimos8.map(m=>m.verbal+m.escrita+m.suspensao),borderColor:'#0d1f3c',backgroundColor:'rgba(13,31,60,.08)',fill:true,tension:.4,pointBackgroundColor:'#e97b2e',pointRadius:4},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11}}},y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11}},grid:{color:'#f0f2f5'}}}}
+  })
+
+  // Barras setor
+  const setorMap={}; dados.forEach(a=>{setorMap[a.setor]=(setorMap[a.setor]||0)+1})
+  const topS=Object.entries(setorMap).sort((a,b)=>b[1]-a[1]).slice(0,8)
+  destroyChart('chart-setor')
+  charts['chart-setor']=new Chart(document.getElementById('chart-setor'),{
+    type:'bar',
+    data:{labels:topS.map(s=>s[0]),datasets:[{data:topS.map(s=>s[1]),backgroundColor:topS.map((_,i)=>i===0?'#e97b2e':'#0d1f3c'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'#f0f2f5'}},y:{ticks:{font:{size:10}},grid:{display:false}}}}
+  })
+
+  // Ranking reincidentes
+  const colabMap={}; dados.forEach(a=>{colabMap[a.colaborador]=(colabMap[a.colaborador]||0)+1})
+  const topC=Object.entries(colabMap).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]).slice(0,10)
+  const maxC=topC[0]?.[1]||1
+  const posCls=['gold','silver','bronze']
+  document.getElementById('ranking-reincidentes').innerHTML=topC.length===0
+    ?'<div class="empty">Nenhum reincidente</div>'
+    :topC.map(([nome,qtd],i)=>`<div class="rank-item">
+        <div class="rank-pos ${posCls[i]||''}">${i+1}</div>
+        <div class="rank-bar-wrap">
+          <div class="rank-nome">${nome}</div>
+          <div class="rank-track"><div class="rank-fill" style="width:${(qtd/maxC)*100}%;background:${qtd>=3?'#ef4444':'#f97316'}"></div></div>
+        </div>
+        <div class="rank-num">${qtd}</div></div>`).join('')
+
+  // Top motivos
+  const motivoMap={}
+  dados.forEach(a=>{
+    const m=(a.motivo||'').trim()
+    if(m)motivoMap[m]=(motivoMap[m]||0)+1
+  })
+  const topM=Object.entries(motivoMap).sort((a,b)=>b[1]-a[1]).slice(0,6)
+  document.getElementById('top-motivos').innerHTML=topM.length===0
+    ?'<div class="empty">Nenhum dado</div>'
+    :topM.map(([mot,qtd])=>`<div class="motivo-item">
+        <div class="motivo-texto">${mot}</div>
+        <div class="motivo-count">${qtd}</div></div>`).join('')
+
+  // Heatmap dia da semana
+  const diaMap={0:0,1:0,2:0,3:0,4:0,5:0,6:0}
+  dados.forEach(a=>{
+    if(a.data){const d=new Date(a.data+'T12:00:00');diaMap[d.getDay()]=(diaMap[d.getDay()]||0)+1}
+  })
+  const maxDia=Math.max(...Object.values(diaMap))||1
+  const heatColors=['#f0f2f5','#fed7aa','#fdba74','#fb923c','#f97316','#ea580c']
+  document.getElementById('heatmap-semana').innerHTML=`
+    <div class="heatmap">${DIAS_SEMANA.map(d=>`<div class="heatmap-label">${d}</div>`).join('')}</div>
+    <div class="heatmap" style="margin-top:4px">${[0,1,2,3,4,5,6].map(i=>{
+      const qtd=diaMap[i]||0
+      const lvl=Math.min(5,Math.round((qtd/maxDia)*5))
+      return`<div class="heatmap-day" style="background:${heatColors[lvl]};color:${lvl>=3?'#fff':'#444'}">${qtd}</div>`
+    }).join('')}</div>
+    <div style="margin-top:8px;font-size:11px;color:#888;text-align:center">Quantidade de advertências por dia da semana</div>`
+
+  // Comparativo mês atual vs anterior
+  const agora=new Date()
+  const mesAtual=agora.toISOString().substring(0,7)
+  const ant=new Date(agora.getFullYear(),agora.getMonth()-1,1)
+  const mesAnt=ant.toISOString().substring(0,7)
+  const dadosMesAtual=advertencias.filter(a=>a.data?.startsWith(mesAtual))
+  const dadosMesAnt=advertencias.filter(a=>a.data?.startsWith(mesAnt))
+
+  function delta(a,b){
+    if(a===b)return`<span class="comp-delta delta-same">= igual</span>`
+    if(a>b)return`<span class="comp-delta delta-up">▲ +${a-b}</span>`
+    return`<span class="comp-delta delta-down">▼ ${a-b}</span>`
+  }
+
+  const linhasComp=[
+    ['Total',dadosMesAtual.length,dadosMesAnt.length],
+    ['Verbais',dadosMesAtual.filter(a=>a.tipo==='verbal').length,dadosMesAnt.filter(a=>a.tipo==='verbal').length],
+    ['Escritas',dadosMesAtual.filter(a=>a.tipo==='escrita').length,dadosMesAnt.filter(a=>a.tipo==='escrita').length],
+    ['Suspensões',dadosMesAtual.filter(a=>a.tipo==='suspensao').length,dadosMesAnt.filter(a=>a.tipo==='suspensao').length],
+  ]
+  const nomesMes=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+  document.getElementById('comparativo').innerHTML=`
+    <div style="display:flex;justify-content:flex-end;gap:20px;margin-bottom:10px;font-size:11px;font-weight:800;text-transform:uppercase;color:#888">
+      <span>${nomesMes[ant.getMonth()]}</span>
+      <span style="color:#0d1f3c">${nomesMes[agora.getMonth()]}</span>
+    </div>
+    ${linhasComp.map(([label,atual,anterior])=>`
+      <div class="comp-row">
+        <span class="comp-label">${label}</span>
+        <div class="comp-values">
+          <span class="comp-val" style="color:#aaa">${anterior}</span>
+          <span class="comp-val" style="color:#0d1f3c">${atual}</span>
+          ${delta(atual,anterior)}
+        </div>
+      </div>`).join('')}`
+
+  // Alertas
+  const alertas=[]
+  const colabMapAtual={}
+  dadosMesAtual.forEach(a=>{colabMapAtual[a.colaborador]=(colabMapAtual[a.colaborador]||0)+1})
+  Object.entries(colabMapAtual).forEach(([nome,qtd])=>{
+    if(qtd>=3)alertas.push({tipo:'danger',nome,msg:`${qtd} advertências neste mês`})
+    else if(qtd===2)alertas.push({tipo:'warn',nome,msg:`2 advertências neste mês — atenção!`})
+  })
+  // Quem tem suspensão no período
+  dados.filter(a=>a.tipo==='suspensao').forEach(a=>{
+    if(!alertas.find(al=>al.nome===a.colaborador&&al.tipo==='danger'))
+      alertas.push({tipo:'warn',nome:a.colaborador,msg:`Possui suspensão registrada`})
+  })
+  document.getElementById('alertas-lista').innerHTML=alertas.length===0
+    ?'<div class="empty">Nenhum alerta no período</div>'
+    :alertas.slice(0,10).map(al=>`
+      <div class="alerta-box alerta-${al.tipo}">
+        <div class="alerta-icon">${al.tipo==='danger'?'🚨':'⚠️'}</div>
+        <div><div class="alerta-text">${al.nome}</div><div class="alerta-sub">${al.msg}</div></div>
+      </div>`).join('')
+}
+
+function destroyChart(id){
+  if(charts[id]){charts[id].destroy();delete charts[id]}
+}
+
+// SHOWPAGE
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'))
+  document.getElementById('page-'+id).classList.add('active')
+  btn.classList.add('active')
+  if(id==='analises')setTimeout(renderAnalises,100)
+}
+
+// FILTROS SETOR
+function renderSetoresFiltros(){
+  const uniq=[...new Set(advertencias.map(a=>a.setor))].sort()
+  ;['f-setor-dash','a-setor','hf-setor'].forEach(id=>{
+    const sel=document.getElementById(id); if(!sel)return
+    const val=sel.value
+    while(sel.options.length>1)sel.remove(1)
+    uniq.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o)})
+    sel.value=val
+  })
+}
+
+function limparFiltrosDash(){
+  ;['f-mes','f-ano','f-de','f-ate','f-setor-dash'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value=''
+  })
+  aplicarFiltros()
+}
+function limparFiltrosAnalise(){
+  ;['a-mes','a-ano','a-setor'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  renderAnalises()
+}
+
+// HISTORICO
+function renderHistorico(){
+  const q=(document.getElementById('hf-busca')?.value||'').toLowerCase()
+  const tipo=document.getElementById('hf-tipo')?.value||''
+  const setor=document.getElementById('hf-setor')?.value||''
+  const mes=document.getElementById('hf-mes')?.value||''
+  const filtrados=advertencias.filter(a=>
+    (!q||a.colaborador.toLowerCase().includes(q)||a.motivo.toLowerCase().includes(q))&&
+    (!tipo||a.tipo===tipo)&&(!setor||a.setor===setor)&&
+    (!mes||a.data?.includes('-'+mes+'-'))
+  )
+  document.getElementById('h-count').textContent=`${filtrados.length} registro${filtrados.length!==1?'s':''}`
+  document.getElementById('tbody-historico').innerHTML=filtrados.length===0
+    ?`<tr><td colspan="5" style="text-align:center;padding:30px;color:#aaa">Nenhuma advertência encontrada.</td></tr>`
+    :filtrados.map((a,i)=>`<tr style="background:${i%2===0?'#fff':'#fafbfc'}">
+        <td style="white-space:nowrap">${fmtData(a.data)}</td>
+        <td style="font-weight:700;color:#0d1f3c">${a.colaborador}</td>
+        <td>${a.setor}</td>
+        <td><span class="badge-tipo badge-${a.tipo}">${LABELS[a.tipo]}${a.tipo==='suspensao'&&a.dias_suspensao?' ('+a.dias_suspensao+'d)':''}</span></td>
+        <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${a.motivo}">${a.motivo}</td>
+      </tr>`).join('')
+}
+function limparFiltrosH(){
+  ;['hf-busca','hf-tipo','hf-setor','hf-mes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})
+  renderHistorico()
+}
+
+// REGISTRAR
+function buscarColab(){
+  const q=document.getElementById('busca-colab').value.toLowerCase().trim()
+  const res=document.getElementById('resultados-colab')
+  if(!q){res.style.display='none';return}
+  const filtrados=colaboradores.filter(c=>c.nome.toLowerCase().includes(q)).slice(0,8)
+  if(filtrados.length===0){res.style.display='none';return}
+  res.innerHTML=filtrados.map(c=>`
+    <div class="search-item" onclick="selecionarColab('${c.id}','${c.nome.replace(/'/g,"\\'")}','${(c.setores?.nome||'').replace(/'/g,"\\'")}')">
+      <span style="font-weight:700;font-size:13px;color:#0d1f3c">${c.nome}</span>
+      <span class="search-setor">${c.setores?.nome||''}</span>
+    </div>`).join('')
+  res.style.display='block'
+}
+function selecionarColab(id,nome,setor){
+  colabSel={id,nome,setor}
+  document.getElementById('busca-colab').value=nome
+  document.getElementById('setor-input').value=setor
+  document.getElementById('colab-id-sel').value=id
+  document.getElementById('resultados-colab').style.display='none'
+}
+function selTipo(tipo,btn){
+  tipoSel=tipo
+  document.getElementById('tipo-sel').value=tipo
+  document.querySelectorAll('.tipo-btn').forEach(b=>b.className='tipo-btn')
+  btn.className=`tipo-btn sel-${tipo}`
+  document.getElementById('dias-group').style.display=tipo==='suspensao'?'block':'none'
+}
+async function registrar(){
+  const colabId=document.getElementById('colab-id-sel').value
+  const motivo=document.getElementById('motivo-input').value.trim()
+  const data=document.getElementById('data-input').value
+  if(!colabId||!motivo||!data){alert('Preencha todos os campos obrigatórios.');return}
+  const btn=document.getElementById('btn-registrar')
+  btn.disabled=true;btn.textContent='Salvando...'
+  try{
+    const payload={colaborador_id:colabId,data,tipo:tipoSel,motivo}
+    if(tipoSel==='suspensao'){const dias=document.getElementById('dias-input').value;if(dias)payload.dias_suspensao=Number(dias)}
+    await supa('advertencias',{method:'POST',prefer:'return=minimal',body:JSON.stringify(payload)})
+    document.getElementById('alert-ok').style.display='block'
+    document.getElementById('busca-colab').value=''
+    document.getElementById('setor-input').value=''
+    document.getElementById('colab-id-sel').value=''
+    document.getElementById('motivo-input').value=''
+    document.getElementById('dias-input').value=''
+    colabSel=null
+    setTimeout(()=>document.getElementById('alert-ok').style.display='none',4000)
+    await carregarDados()
+  }catch(e){alert('Erro: '+e.message)}
+  btn.disabled=false;btn.textContent='⚠ Registrar Advertência'
+}
+
+// COLABORADORES
+function renderColabLista(){
+  const q=(document.getElementById('busca-colab-pag')?.value||'').toLowerCase()
+  const filtrados=colaboradores.filter(c=>c.nome.toLowerCase().includes(q))
+  document.getElementById('colab-lista').innerHTML=filtrados.map(c=>{
+    const total=advertencias.filter(a=>a.colaborador===c.nome).length
+    const cls=total>=3?'count-3plus':total===2?'count-2':total===1?'count-1':''
+    return`<div class="colab-item ${colabDetalheSel?.id===c.id?'active':''}" onclick="verColab('${c.id}')">
+      <div><div class="colab-nome">${c.nome}</div><div class="colab-setor-tag">${c.setores?.nome||''}</div></div>
+      ${total>0?`<span class="colab-count ${cls}">${total}</span>`:''}
+    </div>`
+  }).join('')||'<div class="empty">Nenhum colaborador</div>'
+}
+function verColab(id){
+  colabDetalheSel=colaboradores.find(c=>c.id===id)
+  renderColabLista()
+  const c=colabDetalheSel
+  const hist=advertencias.filter(a=>a.colaborador===c.nome)
+  const verbal=hist.filter(a=>a.tipo==='verbal').length
+  const escrita=hist.filter(a=>a.tipo==='escrita').length
+  const suspensao=hist.filter(a=>a.tipo==='suspensao').length
+  const total=hist.length
+  document.getElementById('colab-detalhe').style.display='block'
+  document.getElementById('colab-detalhe').innerHTML=`
+    <div class="detalhe-header">
+      <div><div class="detalhe-nome">${c.nome}</div><div class="detalhe-setor">${c.setores?.nome||''}</div></div>
+      <div><div style="font-size:36px;font-weight:900;color:${total>=3?'#ef4444':'#e97b2e'}">${total}</div>
+      <div style="font-size:11px;color:#7a9cc4;text-align:right">ocorrência${total!==1?'s':''}</div></div>
+    </div>
+    <div class="detalhe-counters">
+      <div class="detalhe-counter"><div class="detalhe-counter-num" style="color:#f59e0b">${verbal}</div><div class="detalhe-counter-label">Verbal</div></div>
+      <div class="detalhe-counter"><div class="detalhe-counter-num" style="color:#f97316">${escrita}</div><div class="detalhe-counter-label">Escrita</div></div>
+      <div class="detalhe-counter"><div class="detalhe-counter-num" style="color:#ef4444">${suspensao}</div><div class="detalhe-counter-label">Suspensão</div></div>
+    </div>
+    <div style="padding:14px 20px 6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:#0d1f3c">Linha do tempo</div>
+    <div class="timeline">${hist.length===0?'<div class="empty">Nenhuma advertência</div>':
+      hist.map(a=>`<div class="timeline-item">
+        <div class="timeline-dot dot-${a.tipo}"></div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+            <span class="badge-tipo badge-${a.tipo}">${LABELS[a.tipo]}</span>
+            <span style="font-size:11px;color:#aaa">${fmtData(a.data)}</span>
+            ${a.tipo==='suspensao'&&a.dias_suspensao?`<span style="font-size:11px;font-weight:700;color:#ef4444">${a.dias_suspensao}d</span>`:''}
+          </div>
+          <div style="font-size:12px;color:#555">${a.motivo}</div>
+        </div></div>`).join('')}</div>`
+}
+
+// IMPORTAR
+function carregarPlanilha(evt){
+  const file=evt.target.files[0]; if(!file)return
+  const reader=new FileReader()
+  reader.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:'array',cellDates:true})
+    const abaNome=wb.SheetNames.find(n=>n.toLowerCase().includes('advertên')||n.toLowerCase().includes('2026')||n.toLowerCase().includes('2025'))||wb.SheetNames[0]
+    const ws=wb.Sheets[abaNome]
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''})
+    previewData=[]
+    for(const row of rows){
+      const col0=String(row[0]||'').trim()
+      const col1=String(row[1]||'').trim()
+      if(!col0||!col1)continue
+      if(col0.toLowerCase().includes('data')||col0.toLowerCase().includes('aços'))continue
+      const data=toISO(row[0])
+      const nome=String(row[1]||'').trim()
+      const setor=String(row[2]||'').trim()
+      const tipo=normTipo(row[3])
+      const motivo=String(row[4]||'').trim()
+      const dias=row[5]?Number(row[5]):null
+      if(!data||!nome||!setor||!tipo||!motivo)continue
+      previewData.push({data,colaborador:nome,setor,tipo,motivo,dias_suspensao:dias})
+    }
+    mostrarPreview()
+  }
+  reader.readAsArrayBuffer(file)
+}
+function mostrarPreview(){
+  document.getElementById('import-etapa-upload').style.display='none'
+  document.getElementById('import-etapa-preview').style.display='block'
+  document.getElementById('preview-count').textContent=`${previewData.length} registros encontrados`
+  document.getElementById('tbody-preview').innerHTML=previewData.map((d,i)=>`
+    <tr style="background:${i%2===0?'#fff':'#fafbfc'}">
+      <td>${d.data}</td><td style="font-weight:700;color:#0d1f3c">${d.colaborador}</td>
+      <td>${d.setor}</td>
+      <td><span style="background:${CORES[d.tipo]}22;color:${CORES[d.tipo]};font-weight:700;padding:2px 8px;border-radius:20px;font-size:11px">${LABELS[d.tipo]||d.tipo}</span></td>
+      <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.motivo}</td>
+    </tr>`).join('')
+}
+async function importarTodos(){
+  document.getElementById('import-etapa-preview').style.display='none'
+  document.getElementById('import-etapa-progresso').style.display='block'
+  const sMap={};setores.forEach(s=>sMap[s.nome.toLowerCase()]=s.id)
+  const cMap={};colaboradores.forEach(c=>cMap[c.nome.toLowerCase()]=c.id)
+  async function getSetor(nome){
+    const k=nome.toLowerCase().trim();if(sMap[k])return sMap[k]
+    const r=await supa('setores',{method:'POST',prefer:'return=representation',body:JSON.stringify({nome:nome.trim()})})
+    sMap[k]=r[0].id;return r[0].id
+  }
+  async function getColab(nome,setorId){
+    const k=nome.toLowerCase().trim();if(cMap[k])return cMap[k]
+    const r=await supa('colaboradores',{method:'POST',prefer:'return=representation',body:JSON.stringify({nome:nome.trim(),setor_id:setorId})})
+    cMap[k]=r[0].id;return r[0].id
+  }
+  let ok=0,dup=0,err=0
+  for(let i=0;i<previewData.length;i++){
+    const d=previewData[i]
+    try{
+      const exist=await supa(`advertencias?select=id&data=eq.${d.data}&tipo=eq.${d.tipo}&limit=1`)
+      if(exist&&exist.length>0){dup++;continue}
+      const sId=await getSetor(d.setor)
+      const cId=await getColab(d.colaborador,sId)
+      const payload={colaborador_id:cId,data:d.data,tipo:d.tipo,motivo:d.motivo}
+      if(d.tipo==='suspensao'&&d.dias_suspensao)payload.dias_suspensao=d.dias_suspensao
+      await supa('advertencias',{method:'POST',prefer:'return=minimal',body:JSON.stringify(payload)})
+      ok++
+    }catch(e){err++}
+    const pct=Math.round(((i+1)/previewData.length)*100)
+    document.getElementById('progress-fill').style.width=pct+'%'
+    document.getElementById('progress-txt').textContent=pct+'%'
+  }
+  document.getElementById('r-ok').textContent=ok
+  document.getElementById('r-dup').textContent=dup
+  document.getElementById('r-err').textContent=err
+  document.getElementById('import-etapa-progresso').style.display='none'
+  document.getElementById('import-etapa-concluido').style.display='block'
+  await carregarDados()
+}
+function resetImport(){
+  previewData=[]
+  document.getElementById('fileInput').value=''
+  ;['import-etapa-preview','import-etapa-progresso','import-etapa-concluido'].forEach(id=>document.getElementById(id).style.display='none')
+  document.getElementById('import-etapa-upload').style.display='block'
+}
+
+function fmtData(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
+function toISO(val){
+  if(!val)return null
+  if(typeof val==='string'){const p=val.trim().split('/');if(p.length===3)return`${p[2].padStart(4,'0')}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;return null}
+  if(typeof val==='number'){const d=new Date(Math.round((val-25569)*86400*1000));return d.toISOString().split('T')[0]}
+  if(val instanceof Date)return val.toISOString().split('T')[0]
+  return null
+}
+function normTipo(val){
+  const s=String(val||'').toLowerCase().trim()
+  if(s.includes('verbal'))return'verbal'
+  if(s.includes('escrita'))return'escrita'
+  if(s.includes('suspens'))return'suspensao'
+  return null
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#busca-colab')&&!e.target.closest('#resultados-colab'))
+    document.getElementById('resultados-colab').style.display='none'
+})
+
+init()
+</script>
+</body>
+</html>
