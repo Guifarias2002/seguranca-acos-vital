@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Aços Vital — Advertências</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--azul:#0d1f3c;--azul2:#162d52;--laranja:#e97b2e;--bg:#f0f2f5;--branco:#fff;--borda:#e2e8f0}
+body{font-family:'Barlow',sans-serif;background:var(--bg);min-height:100vh;padding-bottom:80px}
+
+/* TOPBAR MOBILE */
+.topbar{background:var(--azul);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:30px;height:30px;background:var(--laranja);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:13px;flex-shrink:0}
+.logo-name{font-weight:900;color:#fff;font-size:13px;text-transform:uppercase;letter-spacing:1px}
+.logo-sub{font-size:9px;color:var(--laranja);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.menu-btn{background:none;border:none;color:#7a9cc4;font-size:22px;cursor:pointer;padding:4px}
+
+/* SIDEBAR OVERLAY */
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none}
+.sidebar-overlay.open{display:block}
+.sidebar{position:fixed;left:-260px;top:0;width:260px;height:100vh;background:var(--azul);z-index:300;transition:left .3s;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar.open{left:0}
+.sidebar-header{padding:20px 18px;border-bottom:1px solid var(--azul2);display:flex;justify-content:space-between;align-items:center}
+.sidebar-close{background:none;border:none;color:#7a9cc4;font-size:20px;cursor:pointer}
+nav{flex:1;padding:12px 10px}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;color:#7a9cc4;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:3px;border:none;background:none;width:100%;text-align:left;font-family:'Barlow',sans-serif;transition:all .2s}
+.nav-btn:hover,.nav-btn:active{background:rgba(255,255,255,.07);color:#fff}
+.nav-btn.active{background:var(--laranja);color:#fff}
+.sidebar-footer{padding:14px 18px;border-top:1px solid var(--azul2)}
+.sidebar-footer p{font-size:10px;color:#2a4a6a}
+
+/* BOTTOM NAV MOBILE */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--azul);display:flex;z-index:100;border-top:1px solid var(--azul2)}
+.bottom-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;color:#7a9cc4;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:none;background:none;cursor:pointer;font-family:'Barlow',sans-serif;gap:3px;transition:color .2s}
+.bottom-btn.active{color:var(--laranja)}
+.bottom-btn span:first-child{font-size:18px}
+
+/* CONTENT */
+.content{padding:16px}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:18px;font-weight:900;color:var(--azul);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.page-sub{font-size:12px;color:#888;margin-bottom:16px}
+
+/* CARDS */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.card{border-radius:14px;padding:14px;cursor:pointer;transition:transform .15s;active:transform:scale(.97)}
+.card:active{transform:scale(.97)}
+.card-dark{background:var(--azul)}.card-y{background:#fff8e1;border:1px solid #fde68a}
+.card-o{background:#fff3e6;border:1px solid #fed7aa}.card-r{background:#fde8e8;border:1px solid #fecaca}
+.card-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px}
+.card-dark .card-lbl{color:var(--laranja)}.card-y .card-lbl{color:#d97706}.card-o .card-lbl{color:#c2410c}.card-r .card-lbl{color:#b91c1c}
+.card-num{font-size:36px;font-weight:900;line-height:1}
+.card-dark .card-num{color:#fff}.card-y .card-num{color:#f59e0b}.card-o .card-num{color:#f97316}.card-r .card-num{color:#ef4444}
+.card-hint{font-size:9px;margin-top:4px;opacity:.6}
+.card-dark .card-hint{color:#fff}.card-y .card-hint{color:#92400e}.card-o .card-hint{color:#9a3412}.card-r .card-hint{color:#991b1b}
+
+/* FILTROS */
+.filtros{background:var(--branco);border-radius:12px;padding:12px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.filtros label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--azul)}
+.filtros select,.filtros input{border:1.5px solid var(--borda);border-radius:8px;padding:6px 8px;font-size:12px;font-family:'Barlow',sans-serif;outline:none;background:#fafbfc;color:var(--azul);max-width:120px}
+.btn-limpar{background:none;border:none;color:var(--laranja);font-weight:700;font-size:12px;cursor:pointer;font-family:'Barlow',sans-serif}
+
+/* BOX */
+.box{background:var(--branco);border-radius:14px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:14px}
+.box-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--azul);margin-bottom:12px}
+.chart-wrap{position:relative;height:180px}
+
+/* TABELA */
+.tbl-wrap{background:var(--branco);border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden;margin-bottom:14px}
+.tbl-head{background:var(--azul);padding:10px 14px}
+.tbl-head span{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#fff}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:400px}
+th{background:#f8f9fa;padding:8px 12px;text-align:left;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--azul);border-bottom:1px solid var(--borda)}
+td{padding:9px 12px;border-bottom:1px solid #f5f5f5;color:#444}
+tr:last-child td{border-bottom:none}
+.tr-click{cursor:pointer}.tr-click:active td{background:#fff8f0}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.badge-verbal{background:#fff8e6;color:#b45309}.badge-escrita{background:#fff3e6;color:#c2410c}.badge-suspensao{background:#fde8e8;color:#b91c1c}
+
+/* BARRA */
+.bar-item{margin-bottom:10px;cursor:pointer;border-radius:8px;padding:5px;transition:background .15s;active:background:#fff8f0}
+.bar-item:active{background:#fff8f0}
+.bar-top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.bar-nome{font-weight:700;color:var(--azul)}.bar-num{font-weight:900;color:var(--laranja)}
+.bar-track{height:6px;background:#f0f2f5;border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px}
+
+/* RANKING */
+.rank-item{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid #f5f5f5;cursor:pointer}
+.rank-item:active{background:#fff8f0}
+.rank-pos{width:22px;height:22px;border-radius:50%;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-bar-wrap{flex:1;min-width:0}
+.rank-nome{font-weight:700;font-size:12px;color:var(--azul);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-sub{font-size:10px;color:#888}
+.rank-track{height:4px;background:#f0f2f5;border-radius:4px;overflow:hidden;margin-top:4px}
+.rank-fill{height:100%;border-radius:4px}
+.rank-num{font-weight:900;font-size:15px;color:var(--laranja);flex-shrink:0}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:flex-end;justify-content:center;padding:0}
+.modal{background:var(--branco);border-radius:20px 20px 0 0;width:100%;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
+@media(min-width:600px){
+  .modal-bg{align-items:center;padding:20px}
+  .modal{border-radius:20px;max-width:680px;max-height:85vh}
+}
+.modal-header{background:var(--azul);padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start;flex-shrink:0}
+.modal-title{font-size:14px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:1px}
+.modal-sub{font-size:11px;color:#7a9cc4;margin-top:2px}
+.modal-close{background:none;border:none;color:#7a9cc4;font-size:22px;cursor:pointer;flex-shrink:0;margin-left:10px}
+.modal-body{padding:16px 18px;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+.modal-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.modal-stat{border-radius:10px;padding:10px;text-align:center}
+.ms-y{background:#fff8e6}.ms-o{background:#fff3e6}.ms-r{background:#fde8e8}
+.ms-num{font-size:22px;font-weight:900}
+.ms-y .ms-num{color:#f59e0b}.ms-o .ms-num{color:#f97316}.ms-r .ms-num{color:#ef4444}
+.ms-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-top:2px;color:#888}
+
+/* UPLOAD */
+.upload-zone{border:2.5px dashed var(--laranja);background:#fff8f0;border-radius:16px;padding:36px 20px;text-align:center;cursor:pointer;margin-bottom:16px}
+.upload-zone:active{background:#fff0e0}
+.upload-zone h2{font-size:16px;font-weight:800;color:var(--azul);margin:10px 0 5px}
+.upload-zone p{font-size:12px;color:#aaa}
+#fileInput{display:none}
+.btn-imp{background:var(--laranja);color:#fff;border:none;border-radius:12px;padding:10px 20px;font-size:13px;font-weight:800;font-family:'Barlow',sans-serif;cursor:pointer}
+.btn-export{background:#1e3a6e;color:#7a9cc4;border:none;border-radius:12px;padding:10px 16px;font-size:12px;font-weight:800;font-family:'Barlow',sans-serif;cursor:pointer;width:100%;margin-top:10px;text-align:center}
+.btn-export:active{background:var(--laranja);color:#fff}
+.progress{height:10px;background:#f0f2f5;border-radius:10px;overflow:hidden;margin:14px 0}
+.progress-fill{height:100%;background:var(--laranja);border-radius:10px;transition:width .1s;width:0%}
+.resumo{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.resumo-card{border-radius:12px;padding:12px;text-align:center}
+.r-ok{background:#e6f9f0}.r-dup{background:#fff8e6}.r-err{background:#fde8e8}
+.resumo-num{font-size:28px;font-weight:900}
+.r-ok .resumo-num{color:#059669}.r-dup .resumo-num{color:#d97706}.r-err .resumo-num{color:#dc2626}
+.resumo-lbl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+.r-ok .resumo-lbl{color:#059669}.r-dup .resumo-lbl{color:#d97706}.r-err .resumo-lbl{color:#dc2626}
+.preview-header{background:var(--azul);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-radius:12px 12px 0 0}
+.preview-header span{color:#fff;font-weight:800;font-size:12px}
+.empty{padding:24px;text-align:center;color:#aaa;font-size:13px}
+
+/* DESKTOP OVERRIDE */
+@media(min-width:768px){
+  body{padding-bottom:0;display:flex;flex-direction:column}
+  .topbar{display:none}
+  .bottom-nav{display:none}
+  .sidebar{left:0;position:fixed}
+  .sidebar-overlay{display:none!important}
+  #main-content{margin-left:260px}
+  .cards{grid-template-columns:repeat(4,1fr)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .chart-wrap{height:200px}
+  table{min-width:auto}
+  .content{padding:24px 28px}
+  .modal-bg{align-items:center;padding:20px}
+  .modal{border-radius:20px;max-width:680px}
+}
+.grid2{display:block}
+@media(min-width:768px){.grid2{display:grid}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR (mobile) -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="logo-icon">A</div>
+    <div>
+      <div class="logo-name">AçosVital</div>
+      <div class="logo-sub">Segurança do Trabalho</div>
+    </div>
+  </div>
+  <button class="menu-btn" onclick="abrirMenu()">☰</button>
+</div>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="overlay" onclick="fecharMenu()"></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div>
+      <div class="logo-name" style="color:#fff">AçosVital</div>
+      <div class="logo-sub">Segurança do Trabalho</div>
+    </div>
+    <button class="sidebar-close" onclick="fecharMenu()">✕</button>
+  </div>
+  <nav>
+    <button class="nav-btn active" onclick="ir('dashboard',this)">▣ Dashboard</button>
+    <button class="nav-btn" onclick="ir('ranking',this)">🏆 Rankings</button>
+    <button class="nav-btn" onclick="ir('historico',this)">≡ Histórico</button>
+    <button class="nav-btn" onclick="ir('analises',this)">📈 Análises</button>
+    <button class="nav-btn" onclick="ir('importar',this)">↑ Importar Planilha</button>
+  </nav>
+  <div style="padding:14px">
+    <button class="btn-export" onclick="exportarHTML();fecharMenu()">📤 Exportar com dados</button>
+  </div>
+  <div class="sidebar-footer"><p>Sistema de Advertências v3.0 · 2026</p></div>
+</div>
+
+<!-- MAIN -->
+<div id="main-content">
+
+  <!-- DASHBOARD -->
+  <div id="pg-dashboard" class="page active">
+    <div class="content">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Toque nos cards para ver detalhes</div>
+
+      <div class="filtros">
+        <label>Mês</label>
+        <select id="f-mes" onchange="renderDash()">
+          <option value="">Todos</option>
+          <option value="-01-">Jan</option><option value="-02-">Fev</option><option value="-03-">Mar</option>
+          <option value="-04-">Abr</option><option value="-05-">Mai</option><option value="-06-">Jun</option>
+          <option value="-07-">Jul</option><option value="-08-">Ago</option><option value="-09-">Set</option>
+          <option value="-10-">Out</option><option value="-11-">Nov</option><option value="-12-">Dez</option>
+        </select>
+        <label>Ano</label>
+        <select id="f-ano" onchange="renderDash()">
+          <option value="">Todos</option><option value="2025">2025</option><option value="2026">2026</option>
+        </select>
+        <label>Setor</label>
+        <select id="f-setor" onchange="renderDash()"><option value="">Todos</option></select>
+        <button class="btn-limpar" onclick="limpar()">Limpar</button>
+      </div>
+
+      <div class="cards">
+        <div class="card card-dark" style="grid-column:span 2" onclick="abrirModal('todos')">
+          <div class="card-lbl">Total de Registros</div>
+          <div class="card-num" id="c-total">0</div>
+          <div class="card-hint">Toque para ver todos →</div>
+        </div>
+        <div class="card card-y" onclick="abrirModal('verbal')">
+          <div class="card-lbl">Verbais</div>
+          <div class="card-num" id="c-verbal">0</div>
+          <div class="card-hint">Ver →</div>
+        </div>
+        <div class="card card-o" onclick="abrirModal('escrita')">
+          <div class="card-lbl">Escritas</div>
+          <div class="card-num" id="c-escrita">0</div>
+          <div class="card-hint">Ver →</div>
+        </div>
+        <div class="card card-r" style="grid-column:span 2" onclick="abrirModal('suspensao')">
+          <div class="card-lbl">Suspensões</div>
+          <div class="card-num" id="c-suspensao">0</div>
+          <div class="card-hint">Toque para ver →</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">🏭 Setores — toque para ver colaboradores</div>
+        <div id="setores-bar"></div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Distribuição por tipo</div>
+        <div class="chart-wrap"><canvas id="chart-pizza"></canvas></div>
+      </div>
+
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span>Últimas advertências — toque para detalhes</span></div>
+        <div class="tbl-scroll">
+          <table><thead><tr><th>Data</th><th>Colaborador</th><th>Setor</th><th>Tipo</th></tr></thead>
+          <tbody id="tb-recentes"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RANKING -->
+  <div id="pg-ranking" class="page">
+    <div class="content">
+      <div class="page-title">Rankings</div>
+      <div class="page-sub">Toque para ver histórico</div>
+      <div class="filtros">
+        <label>Mês</label>
+        <select id="rf-mes" onchange="renderRanking()">
+          <option value="">Todos</option>
+          <option value="-01-">Jan</option><option value="-02-">Fev</option><option value="-03-">Mar</option>
+          <option value="-04-">Abr</option><option value="-05-">Mai</option><option value="-06-">Jun</option>
+          <option value="-07-">Jul</option><option value="-08-">Ago</option><option value="-09-">Set</option>
+          <option value="-10-">Out</option><option value="-11-">Nov</option><option value="-12-">Dez</option>
+        </select>
+        <label>Ano</label>
+        <select id="rf-ano" onchange="renderRanking()">
+          <option value="">Todos</option><option value="2025">2025</option><option value="2026">2026</option>
+        </select>
+        <button class="btn-limpar" onclick="document.getElementById('rf-mes').value='';document.getElementById('rf-ano').value='';renderRanking()">Limpar</button>
+      </div>
+      <div class="box">
+        <div class="box-title">👷 Colaboradores</div>
+        <div id="rank-colaboradores"></div>
+      </div>
+      <div class="box">
+        <div class="box-title">🏭 Setores</div>
+        <div id="rank-setores"></div>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span>Total por colaborador</span></div>
+        <div class="tbl-scroll">
+          <table>
+            <thead><tr><th>#</th><th>Colaborador</th><th>Setor</th><th style="color:#f59e0b">V</th><th style="color:#f97316">E</th><th style="color:#ef4444">S</th><th>Tot</th></tr></thead>
+            <tbody id="tb-ranking-completo"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div id="pg-historico" class="page">
+    <div class="content">
+      <div class="page-title">Histórico</div>
+      <div class="page-sub">Toque para ver detalhes</div>
+      <div class="filtros">
+        <input type="text" id="hf-busca" placeholder="Buscar..." oninput="renderHistorico()" style="max-width:140px">
+        <select id="hf-tipo" onchange="renderHistorico()">
+          <option value="">Todos</option>
+          <option value="verbal">Verbal</option><option value="escrita">Escrita</option><option value="suspensao">Suspensão</option>
+        </select>
+        <select id="hf-mes" onchange="renderHistorico()">
+          <option value="">Mês</option>
+          <option value="-01-">Jan</option><option value="-02-">Fev</option><option value="-03-">Mar</option>
+          <option value="-04-">Abr</option><option value="-05-">Mai</option><option value="-06-">Jun</option>
+          <option value="-07-">Jul</option><option value="-08-">Ago</option><option value="-09-">Set</option>
+          <option value="-10-">Out</option><option value="-11-">Nov</option><option value="-12-">Dez</option>
+        </select>
+        <select id="hf-setor" onchange="renderHistorico()"><option value="">Setor</option></select>
+        <button class="btn-limpar" onclick="limparH()">Limpar</button>
+      </div>
+      <div class="tbl-wrap">
+        <div class="tbl-head"><span id="h-count">0 registros</span></div>
+        <div class="tbl-scroll">
+          <table><thead><tr><th>Data</th><th>Colaborador</th><th>Setor</th><th>Tipo</th><th>Motivo</th></tr></thead>
+          <tbody id="tb-historico"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANÁLISES -->
+  <div id="pg-analises" class="page">
+    <div class="content">
+      <div class="page-title">Análises</div>
+      <div class="page-sub">Toque nos gráficos para filtrar</div>
+      <div class="filtros">
+        <label>Mês</label>
+        <select id="af-mes" onchange="renderAnalises()">
+          <option value="">Todos</option>
+          <option value="-01-">Jan</option><option value="-02-">Fev</option><option value="-03-">Mar</option>
+          <option value="-04-">Abr</option><option value="-05-">Mai</option><option value="-06-">Jun</option>
+          <option value="-07-">Jul</option><option value="-08-">Ago</option><option value="-09-">Set</option>
+          <option value="-10-">Out</option><option value="-11-">Nov</option><option value="-12-">Dez</option>
+        </select>
+        <label>Ano</label>
+        <select id="af-ano" onchange="renderAnalises()">
+          <option value="">Todos</option><option value="2025">2025</option><option value="2026">2026</option>
+        </select>
+        <button class="btn-limpar" onclick="document.getElementById('af-mes').value='';document.getElementById('af-ano').value='';renderAnalises()">Limpar</button>
+      </div>
+      <div class="box"><div class="box-title">Por mês</div><div class="chart-wrap"><canvas id="chart-mensal"></canvas></div></div>
+      <div class="box"><div class="box-title">Por tipo</div><div class="chart-wrap"><canvas id="chart-tipo2"></canvas></div></div>
+      <div class="box"><div class="box-title">📋 Motivos frequentes</div><div id="motivos"></div></div>
+      <div class="box"><div class="box-title">🔄 Mês atual vs anterior</div><div id="comparativo"></div></div>
+    </div>
+  </div>
+
+  <!-- IMPORTAR -->
+  <div id="pg-importar" class="page">
+    <div class="content">
+      <div class="page-title">Importar Planilha</div>
+      <div class="page-sub">Dados ficam salvos no arquivo</div>
+      <div id="etapa-upload">
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <div style="font-size:44px">📂</div>
+          <h2>Toque para selecionar</h2>
+          <p>Aceita .xlsx e .xls</p>
+        </div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="lerPlanilha(event)">
+      </div>
+      <div id="etapa-preview" style="display:none">
+        <div style="border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:12px">
+          <div class="preview-header">
+            <span id="preview-txt">0 registros</span>
+            <button class="btn-imp" style="padding:7px 14px;font-size:12px" onclick="importar()">⬆ Importar</button>
+          </div>
+          <div class="tbl-scroll" style="max-height:280px;overflow-y:auto">
+            <table><thead><tr><th>Data</th><th>Colaborador</th><th>Setor</th><th>Tipo</th></tr></thead>
+            <tbody id="tb-preview"></tbody></table>
+          </div>
+        </div>
+        <button onclick="resetar()" style="background:none;border:none;color:var(--laranja);font-weight:700;cursor:pointer;font-size:13px;font-family:'Barlow',sans-serif">← Outro arquivo</button>
+      </div>
+      <div id="etapa-progresso" style="display:none">
+        <div class="box" style="text-align:center;padding:36px">
+          <div style="font-size:44px;margin-bottom:10px">⏳</div>
+          <div style="font-size:18px;font-weight:900;color:var(--azul);margin-bottom:14px">Importando...</div>
+          <div class="progress"><div class="progress-fill" id="prog-fill"></div></div>
+          <div id="prog-txt" style="font-size:13px;color:#aaa">0%</div>
+        </div>
+      </div>
+      <div id="etapa-fim" style="display:none">
+        <div class="box" style="margin-bottom:14px">
+          <div style="font-size:15px;font-weight:900;color:var(--azul);margin-bottom:14px">✅ Importação concluída!</div>
+          <div class="resumo">
+            <div class="resumo-card r-ok"><div class="resumo-num" id="r-ok">0</div><div class="resumo-lbl">Importados</div></div>
+            <div class="resumo-card r-dup"><div class="resumo-num" id="r-dup">0</div><div class="resumo-lbl">Duplicados</div></div>
+            <div class="resumo-card r-err"><div class="resumo-num" id="r-err">0</div><div class="resumo-lbl">Erros</div></div>
+          </div>
+          <button onclick="irDash()" style="background:var(--azul);color:#fff;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:800;font-family:'Barlow',sans-serif;cursor:pointer;width:100%;margin-bottom:10px">▣ Ver Dashboard</button>
+          <button onclick="exportarHTML()" style="background:var(--laranja);color:#fff;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:800;font-family:'Barlow',sans-serif;cursor:pointer;width:100%;margin-bottom:10px">📤 Exportar HTML com dados</button>
+          <button onclick="resetar()" style="background:none;border:none;color:var(--laranja);font-weight:700;cursor:pointer;font-size:13px;font-family:'Barlow',sans-serif;width:100%">Importar outro arquivo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<div class="bottom-nav">
+  <button class="bottom-btn active" id="bn-dashboard" onclick="ir('dashboard',this,true)"><span>▣</span><span>Dashboard</span></button>
+  <button class="bottom-btn" id="bn-ranking" onclick="ir('ranking',this,true)"><span>🏆</span><span>Rankings</span></button>
+  <button class="bottom-btn" id="bn-historico" onclick="ir('historico',this,true)"><span>≡</span><span>Histórico</span></button>
+  <button class="bottom-btn" id="bn-analises" onclick="ir('analises',this,true)"><span>📈</span><span>Análises</span></button>
+  <button class="bottom-btn" id="bn-importar" onclick="ir('importar',this,true)"><span>↑</span><span>Importar</span></button>
+</div>
+
+<!-- MODAL -->
+<div id="modal-bg" class="modal-bg" style="display:none" onclick="fecharModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="modal-title">Detalhes</div><div class="modal-sub" id="modal-sub"></div></div>
+      <button class="modal-close" onclick="fecharModalBtn()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const CHAVE='acosVital_adv_v3'
+let dados=JSON.parse(localStorage.getItem(CHAVE)||'[]')
+let preview=[],charts={}
+const TL={verbal:'Verbal',escrita:'Escrita',suspensao:'Suspensão'}
+const TC={verbal:'#f59e0b',escrita:'#f97316',suspensao:'#ef4444'}
+const MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+
+function salvar(){localStorage.setItem(CHAVE,JSON.stringify(dados))}
+
+function abrirMenu(){document.getElementById('sidebar').classList.add('open');document.getElementById('overlay').classList.add('open')}
+function fecharMenu(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('open')}
+
+function ir(pg,btn,isBottom){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'))
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'))
+  document.querySelectorAll('.bottom-btn').forEach(b=>b.classList.remove('active'))
+  document.getElementById('pg-'+pg).classList.add('active')
+  if(btn)btn.classList.add('active')
+  if(!isBottom){const bb=document.getElementById('bn-'+pg);if(bb)bb.classList.add('active')}
+  else{const nb=document.querySelectorAll('.nav-btn');nb.forEach(b=>{if(b.textContent.toLowerCase().includes(pg.substring(0,4).toLowerCase()))b.classList.add('active')})}
+  fecharMenu()
+  if(pg==='analises')setTimeout(renderAnalises,100)
+  if(pg==='historico'){popularSetoresH();renderHistorico()}
+  if(pg==='ranking')renderRanking()
+}
+
+function irDash(){ir('dashboard',null,false);document.querySelectorAll('.nav-btn')[0].classList.add('active');document.getElementById('bn-dashboard').classList.add('active');renderDash()}
+
+function filtrarDash(){
+  const mes=document.getElementById('f-mes')?.value||''
+  const ano=document.getElementById('f-ano')?.value||''
+  const setor=document.getElementById('f-setor')?.value||''
+  return dados.filter(d=>(!mes||d.data.includes(mes))&&(!ano||d.data.startsWith(ano))&&(!setor||d.setor===setor))
+}
+
+function popularSetoresH(){
+  const sel=document.getElementById('hf-setor');if(!sel)return
+  const val=sel.value;while(sel.options.length>1)sel.remove(1)
+  const u=[...new Set(dados.map(d=>d.setor))].sort()
+  u.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o)})
+  sel.value=val
+}
+
+function abrirModal(tipo,colaborador,setor){
+  let lista=[]
+  document.getElementById('modal-sub').textContent=''
+  if(colaborador){
+    lista=dados.filter(d=>d.colaborador===colaborador)
+    const v=lista.filter(d=>d.tipo==='verbal').length,e=lista.filter(d=>d.tipo==='escrita').length,s=lista.filter(d=>d.tipo==='suspensao').length
+    document.getElementById('modal-title').textContent=colaborador
+    document.getElementById('modal-sub').textContent=(lista[0]?.setor||'')+' · '+lista.length+' ocorrência'+(lista.length!==1?'s':'')
+    document.getElementById('modal-body').innerHTML=`
+      <div class="modal-stats">
+        <div class="modal-stat ms-y"><div class="ms-num">${v}</div><div class="ms-lbl">Verbais</div></div>
+        <div class="modal-stat ms-o"><div class="ms-num">${e}</div><div class="ms-lbl">Escritas</div></div>
+        <div class="modal-stat ms-r"><div class="ms-num">${s}</div><div class="ms-lbl">Suspensões</div></div>
+      </div>
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--azul);margin-bottom:10px">Linha do tempo</div>
+      ${lista.length===0?'<div class="empty">Nenhuma advertência</div>':lista.map(d=>`
+        <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5">
+          <div style="width:8px;height:8px;border-radius:50%;background:${TC[d.tipo]};margin-top:5px;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap">
+              <span class="badge badge-${d.tipo}">${TL[d.tipo]}</span>
+              <span style="font-size:11px;color:#aaa">${fmtData(d.data)}</span>
+              ${d.tipo==='suspensao'&&d.dias?`<span style="font-size:11px;font-weight:700;color:#ef4444">${d.dias}d</span>`:''}
+            </div>
+            <div style="font-size:12px;color:#555">${d.motivo}</div>
+          </div>
+        </div>`).join('')}`
+  } else if(setor){
+    lista=dados.filter(d=>d.setor===setor)
+    const cm={};lista.forEach(d=>cm[d.colaborador]=(cm[d.colaborador]||0)+1)
+    const topC=Object.entries(cm).sort((a,b)=>b[1]-a[1])
+    document.getElementById('modal-title').textContent='🏭 '+setor
+    document.getElementById('modal-sub').textContent=lista.length+' advertência'+(lista.length!==1?'s':'')+' · '+topC.length+' colaborador'+(topC.length!==1?'es':'')
+    document.getElementById('modal-body').innerHTML=topC.map(([nome,qtd])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 8px;border-bottom:1px solid #f5f5f5;cursor:pointer" onclick="fecharModalBtn();setTimeout(()=>abrirModal(null,'${nome.replace(/'/g,"\\'")}'),80)">
+        <span style="font-weight:700;color:var(--azul);font-size:13px">${nome}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:900;color:var(--laranja)">${qtd}</span>
+          <span style="color:#aaa">→</span>
+        </div>
+      </div>`).join('')
+  } else {
+    lista=tipo==='todos'?filtrarDash():filtrarDash().filter(d=>d.tipo===tipo)
+    document.getElementById('modal-title').textContent=tipo==='todos'?'Todas':'Advertências '+TL[tipo]
+    document.getElementById('modal-sub').textContent=lista.length+' registro'+(lista.length!==1?'s':'')
+    document.getElementById('modal-body').innerHTML=`<div class="tbl-scroll">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:380px">
+        <thead><tr>${['Data','Colaborador','Setor','Tipo'].map(h=>`<th style="background:#f8f9fa;padding:8px 10px;text-align:left;font-size:9px;font-weight:800;text-transform:uppercase;color:var(--azul);border-bottom:1px solid var(--borda)">${h}</th>`).join('')}</tr></thead>
+        <tbody>${lista.map((d,i)=>`<tr style="background:${i%2===0?'#fff':'#fafbfc'};cursor:pointer" onclick="fecharModalBtn();setTimeout(()=>abrirModal(null,'${d.colaborador.replace(/'/g,"\\'")}'),80)">
+          <td style="padding:8px 10px;border-bottom:1px solid #f5f5f5;white-space:nowrap;color:#666">${fmtData(d.data)}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #f5f5f5;font-weight:700;color:var(--azul)">${d.colaborador}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #f5f5f5;color:#666">${d.setor}</td>
+          <td style="padding:8px 10px;border-bottom:1px solid #f5f5f5"><span class="badge badge-${d.tipo}">${TL[d.tipo]}</span></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`
+  }
+  document.getElementById('modal-bg').style.display='flex'
+}
+
+function fecharModal(e){if(e.target===document.getElementById('modal-bg'))fecharModalBtn()}
+function fecharModalBtn(){document.getElementById('modal-bg').style.display='none'}
+
+function renderDash(){
+  const u=[...new Set(dados.map(d=>d.setor))].sort()
+  const sel=document.getElementById('f-setor');const val=sel.value
+  while(sel.options.length>1)sel.remove(1)
+  u.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o)})
+  sel.value=val
+  const f=filtrarDash()
+  const total=f.length,verbal=f.filter(d=>d.tipo==='verbal').length
+  const escrita=f.filter(d=>d.tipo==='escrita').length,suspensao=f.filter(d=>d.tipo==='suspensao').length
+  document.getElementById('c-total').textContent=total
+  document.getElementById('c-verbal').textContent=verbal
+  document.getElementById('c-escrita').textContent=escrita
+  document.getElementById('c-suspensao').textContent=suspensao
+  const sm={};f.forEach(d=>sm[d.setor]=(sm[d.setor]||0)+1)
+  const top=Object.entries(sm).sort((a,b)=>b[1]-a[1]).slice(0,6)
+  const maxV=top[0]?.[1]||1
+  document.getElementById('setores-bar').innerHTML=top.length===0?'<div class="empty">Nenhum dado ainda</div>':
+    top.map(([nome,qtd],i)=>`<div class="bar-item" onclick="abrirModal(null,null,'${nome.replace(/'/g,"\\'")}')">
+      <div class="bar-top"><span class="bar-nome">${nome}</span><span class="bar-num">${qtd} →</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(qtd/maxV)*100}%;background:${i===0?'#e97b2e':'#0d1f3c'}"></div></div>
+    </div>`).join('')
+  destroyChart('chart-pizza')
+  if(verbal+escrita+suspensao>0){
+    charts['chart-pizza']=new Chart(document.getElementById('chart-pizza'),{
+      type:'doughnut',
+      data:{labels:['Verbal','Escrita','Suspensão'],datasets:[{data:[verbal,escrita,suspensao],backgroundColor:['#f59e0b','#f97316','#ef4444'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},
+        onClick:(e,els)=>{if(els.length>0)abrirModal(['verbal','escrita','suspensao'][els[0].index])}
+      }
+    })
+  }
+  document.getElementById('tb-recentes').innerHTML=f.length===0
+    ?'<tr><td colspan="4" style="text-align:center;padding:20px;color:#aaa">Nenhuma advertência — importe uma planilha!</td></tr>'
+    :f.slice(0,10).map((d,i)=>`<tr class="tr-click" style="background:${i%2===0?'#fff':'#fafbfc'}" onclick="abrirModal(null,'${d.colaborador.replace(/'/g,"\\'")}')">
+      <td style="white-space:nowrap;color:#666">${fmtData(d.data)}</td>
+      <td style="font-weight:700;color:var(--azul)">${d.colaborador}</td>
+      <td style="color:#666">${d.setor}</td>
+      <td><span class="badge badge-${d.tipo}">${TL[d.tipo]}</span></td>
+    </tr>`).join('')
+}
+
+function limpar(){document.getElementById('f-mes').value='';document.getElementById('f-ano').value='';document.getElementById('f-setor').value='';renderDash()}
+
+function renderRanking(){
+  const mes=document.getElementById('rf-mes')?.value||'',ano=document.getElementById('rf-ano')?.value||''
+  const f=dados.filter(d=>(!mes||d.data.includes(mes))&&(!ano||d.data.startsWith(ano)))
+  const cm={};f.forEach(d=>cm[d.colaborador]=(cm[d.colaborador]||0)+1)
+  const topC=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,15)
+  const maxC=topC[0]?.[1]||1
+  const posCl=['#f59e0b','#94a3b8','#cd7c2f']
+  document.getElementById('rank-colaboradores').innerHTML=topC.length===0?'<div class="empty">Nenhum dado</div>':
+    topC.map(([nome,qtd],i)=>`<div class="rank-item" onclick="abrirModal(null,'${nome.replace(/'/g,"\\'")}')">
+      <div class="rank-pos" style="background:${posCl[i]||'#0d1f3c'}">${i+1}</div>
+      <div class="rank-bar-wrap">
+        <div class="rank-nome">${nome}</div>
+        <div class="rank-sub">${dados.find(d=>d.colaborador===nome)?.setor||''}</div>
+        <div class="rank-track"><div class="rank-fill" style="width:${(qtd/maxC)*100}%;background:${qtd>=3?'#ef4444':qtd===2?'#f97316':'#f59e0b'}"></div></div>
+      </div>
+      <div class="rank-num">${qtd}</div>
+    </div>`).join('')
+  const sm={};f.forEach(d=>sm[d.setor]=(sm[d.setor]||0)+1)
+  const topS=Object.entries(sm).sort((a,b)=>b[1]-a[1])
+  const maxS=topS[0]?.[1]||1
+  document.getElementById('rank-setores').innerHTML=topS.length===0?'<div class="empty">Nenhum dado</div>':
+    topS.map(([nome,qtd],i)=>`<div class="rank-item" onclick="abrirModal(null,null,'${nome.replace(/'/g,"\\'")}')">
+      <div class="rank-pos" style="background:${posCl[i]||'#0d1f3c'}">${i+1}</div>
+      <div class="rank-bar-wrap">
+        <div class="rank-nome">${nome}</div>
+        <div class="rank-track"><div class="rank-fill" style="width:${(qtd/maxS)*100}%;background:${i===0?'#e97b2e':'#0d1f3c'}"></div></div>
+      </div>
+      <div class="rank-num">${qtd}</div>
+    </div>`).join('')
+  const colabMap={}
+  f.forEach(d=>{if(!colabMap[d.colaborador])colabMap[d.colaborador]={setor:d.setor,verbal:0,escrita:0,suspensao:0};colabMap[d.colaborador][d.tipo]++})
+  const tab=Object.entries(colabMap).map(([nome,v])=>({nome,setor:v.setor,verbal:v.verbal,escrita:v.escrita,suspensao:v.suspensao,total:v.verbal+v.escrita+v.suspensao})).sort((a,b)=>b.total-a.total)
+  document.getElementById('tb-ranking-completo').innerHTML=tab.length===0
+    ?'<tr><td colspan="7" style="text-align:center;padding:16px;color:#aaa">Nenhum dado</td></tr>'
+    :tab.map((r,i)=>`<tr class="tr-click" style="background:${i%2===0?'#fff':'#fafbfc'}" onclick="abrirModal(null,'${r.nome.replace(/'/g,"\\'")}')">
+      <td style="color:#aaa;font-weight:900">${i+1}</td>
+      <td style="font-weight:700;color:var(--azul)">${r.nome}</td>
+      <td style="color:#666">${r.setor}</td>
+      <td style="font-weight:700;color:#f59e0b;text-align:center">${r.verbal||'—'}</td>
+      <td style="font-weight:700;color:#f97316;text-align:center">${r.escrita||'—'}</td>
+      <td style="font-weight:700;color:#ef4444;text-align:center">${r.suspensao||'—'}</td>
+      <td style="font-weight:900;color:var(--azul);text-align:center">${r.total}</td>
+    </tr>`).join('')
+}
+
+function renderHistorico(){
+  const q=(document.getElementById('hf-busca')?.value||'').toLowerCase()
+  const tipo=document.getElementById('hf-tipo')?.value||''
+  const mes=document.getElementById('hf-mes')?.value||''
+  const setor=document.getElementById('hf-setor')?.value||''
+  const f=dados.filter(d=>(!q||d.colaborador.toLowerCase().includes(q)||d.motivo.toLowerCase().includes(q))&&(!tipo||d.tipo===tipo)&&(!mes||d.data.includes(mes))&&(!setor||d.setor===setor))
+  document.getElementById('h-count').textContent=`${f.length} registro${f.length!==1?'s':''}`
+  document.getElementById('tb-historico').innerHTML=f.length===0
+    ?'<tr><td colspan="5" style="text-align:center;padding:20px;color:#aaa">Nenhuma advertência encontrada</td></tr>'
+    :f.map((d,i)=>`<tr class="tr-click" style="background:${i%2===0?'#fff':'#fafbfc'}" onclick="abrirModal(null,'${d.colaborador.replace(/'/g,"\\'")}')">
+      <td style="white-space:nowrap;color:#666">${fmtData(d.data)}</td>
+      <td style="font-weight:700;color:var(--azul)">${d.colaborador}</td>
+      <td style="color:#666">${d.setor}</td>
+      <td><span class="badge badge-${d.tipo}">${TL[d.tipo]}${d.tipo==='suspensao'&&d.dias?' ('+d.dias+'d)':''}</span></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555" title="${d.motivo}">${d.motivo}</td>
+    </tr>`).join('')
+}
+
+function limparH(){['hf-busca','hf-tipo','hf-mes','hf-setor'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});renderHistorico()}
+
+function renderAnalises(){
+  const mes=document.getElementById('af-mes')?.value||''
+  const ano=document.getElementById('af-ano')?.value||''
+  const f=dados.filter(d=>(!mes||d.data.includes(mes))&&(!ano||d.data.startsWith(ano)))
+  const ultimos6=Array.from({length:6},(_,i)=>{
+    const d=new Date();d.setMonth(d.getMonth()-5+i)
+    const chave=d.toISOString().substring(0,7)
+    return{nome:MESES[d.getMonth()],verbal:f.filter(a=>a.data.startsWith(chave)&&a.tipo==='verbal').length,escrita:f.filter(a=>a.data.startsWith(chave)&&a.tipo==='escrita').length,suspensao:f.filter(a=>a.data.startsWith(chave)&&a.tipo==='suspensao').length}
+  })
+  destroyChart('chart-mensal')
+  charts['chart-mensal']=new Chart(document.getElementById('chart-mensal'),{
+    type:'bar',
+    data:{labels:ultimos6.map(m=>m.nome),datasets:[
+      {label:'Verbal',data:ultimos6.map(m=>m.verbal),backgroundColor:'#f59e0b',borderRadius:3},
+      {label:'Escrita',data:ultimos6.map(m=>m.escrita),backgroundColor:'#f97316',borderRadius:3},
+      {label:'Suspensão',data:ultimos6.map(m=>m.suspensao),backgroundColor:'#ef4444',borderRadius:3},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10}}},y:{stacked:true,beginAtZero:true,ticks:{stepSize:1,font:{size:10}},grid:{color:'#f0f2f5'}}}}
+  })
+  const v=f.filter(a=>a.tipo==='verbal').length,e=f.filter(a=>a.tipo==='escrita').length,s=f.filter(a=>a.tipo==='suspensao').length
+  destroyChart('chart-tipo2')
+  if(v+e+s>0){
+    charts['chart-tipo2']=new Chart(document.getElementById('chart-tipo2'),{
+      type:'doughnut',
+      data:{labels:['Verbal','Escrita','Suspensão'],datasets:[{data:[v,e,s],backgroundColor:['#f59e0b','#f97316','#ef4444'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},onClick:(e,els)=>{if(els.length>0)abrirModal(['verbal','escrita','suspensao'][els[0].index])}}
+    })
+  }
+  const mm={};f.forEach(d=>{if(d.motivo)mm[d.motivo]=(mm[d.motivo]||0)+1})
+  const topM=Object.entries(mm).sort((a,b)=>b[1]-a[1]).slice(0,6)
+  document.getElementById('motivos').innerHTML=topM.length===0?'<div class="empty">Nenhum dado</div>':
+    topM.map(([mot,qtd])=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5">
+      <div style="flex:1;font-size:12px;color:#444;line-height:1.4">${mot}</div>
+      <div style="font-size:13px;font-weight:900;color:var(--laranja);flex-shrink:0">${qtd}</div>
+    </div>`).join('')
+  const agora=new Date()
+  const mesAtual=agora.toISOString().substring(0,7)
+  const ant=new Date(agora.getFullYear(),agora.getMonth()-1,1)
+  const mesAnt=ant.toISOString().substring(0,7)
+  const dA=dados.filter(d=>d.data.startsWith(mesAtual)),dAnt=dados.filter(d=>d.data.startsWith(mesAnt))
+  function delta(a,b){
+    if(a===b)return`<span style="background:#f0f2f5;color:#666;font-size:10px;font-weight:700;padding:2px 5px;border-radius:5px">= igual</span>`
+    if(a>b)return`<span style="background:#fde8e8;color:#b91c1c;font-size:10px;font-weight:700;padding:2px 5px;border-radius:5px">▲ +${a-b}</span>`
+    return`<span style="background:#e6f9f0;color:#059669;font-size:10px;font-weight:700;padding:2px 5px;border-radius:5px">▼ ${a-b}</span>`
+  }
+  const linhas=[['Total',dA.length,dAnt.length],['Verbais',dA.filter(d=>d.tipo==='verbal').length,dAnt.filter(d=>d.tipo==='verbal').length],['Escritas',dA.filter(d=>d.tipo==='escrita').length,dAnt.filter(d=>d.tipo==='escrita').length],['Suspensões',dA.filter(d=>d.tipo==='suspensao').length,dAnt.filter(d=>d.tipo==='suspensao').length]]
+  document.getElementById('comparativo').innerHTML=`
+    <div style="display:flex;justify-content:flex-end;gap:16px;margin-bottom:8px;font-size:10px;font-weight:800;text-transform:uppercase;color:#888">
+      <span>${MESES[ant.getMonth()]}</span><span style="color:var(--azul)">${MESES[agora.getMonth()]}</span>
+    </div>
+    ${linhas.map(([label,atual,anterior])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5">
+      <span style="font-size:12px;color:#666">${label}</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-weight:700;color:#aaa">${anterior}</span>
+        <span style="font-weight:700;color:var(--azul)">${atual}</span>
+        ${delta(atual,anterior)}
+      </div>
+    </div>`).join('')}`
+}
+
+function lerPlanilha(evt){
+  const file=evt.target.files[0];if(!file)return
+  const reader=new FileReader()
+  reader.onload=e=>{
+    const wb=XLSX.read(e.target.result,{type:'array',cellDates:true})
+    const abaNome=wb.SheetNames.find(n=>n.toLowerCase().includes('advertên')||n.toLowerCase().includes('2026')||n.toLowerCase().includes('2025'))||wb.SheetNames[0]
+    const ws=wb.Sheets[abaNome]
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''})
+    preview=[]
+    for(const row of rows){
+      const c0=String(row[0]||'').trim(),c1=String(row[1]||'').trim()
+      if(!c0||!c1)continue
+      if(c0.toLowerCase().includes('data')||c0.toLowerCase().includes('aços')||c0.toLowerCase().includes('colabor'))continue
+      const data=toISO(row[0]),nome=String(row[1]||'').trim(),setor=String(row[2]||'').trim()
+      const tipo=normTipo(row[3]),motivo=String(row[4]||'').trim(),dias=row[5]?Number(row[5]):null
+      if(!data||!nome||!setor||!tipo||!motivo)continue
+      preview.push({data,colaborador:nome,setor,tipo,motivo,dias})
+    }
+    document.getElementById('etapa-upload').style.display='none'
+    document.getElementById('etapa-preview').style.display='block'
+    document.getElementById('preview-txt').textContent=`${preview.length} registros`
+    document.getElementById('tb-preview').innerHTML=preview.map((d,i)=>`
+      <tr style="background:${i%2===0?'#fff':'#fafbfc'}">
+        <td style="padding:7px 10px;color:#666">${d.data}</td>
+        <td style="padding:7px 10px;font-weight:700;color:var(--azul)">${d.colaborador}</td>
+        <td style="padding:7px 10px;color:#666">${d.setor}</td>
+        <td style="padding:7px 10px"><span class="badge badge-${d.tipo}">${TL[d.tipo]||d.tipo}</span></td>
+      </tr>`).join('')
+  }
+  reader.readAsArrayBuffer(file)
+}
+
+function importar(){
+  document.getElementById('etapa-preview').style.display='none'
+  document.getElementById('etapa-progresso').style.display='block'
+  let ok=0,dup=0,i=0
+  function processar(){
+    if(i>=preview.length){
+      salvar()
+      document.getElementById('etapa-progresso').style.display='none'
+      document.getElementById('etapa-fim').style.display='block'
+      document.getElementById('r-ok').textContent=ok
+      document.getElementById('r-dup').textContent=dup
+      document.getElementById('r-err').textContent=0
+      renderDash();renderHistorico()
+      return
+    }
+    const item=preview[i]
+    const existe=dados.find(d=>d.data===item.data&&d.colaborador===item.colaborador&&d.tipo===item.tipo)
+    if(existe)dup++;else{dados.push(item);ok++}
+    i++
+    const pct=Math.round((i/preview.length)*100)
+    document.getElementById('prog-fill').style.width=pct+'%'
+    document.getElementById('prog-txt').textContent=pct+'%'
+    setTimeout(processar,0)
+  }
+  processar()
+}
+
+function resetar(){
+  preview=[];document.getElementById('fileInput').value=''
+  ;['etapa-preview','etapa-progresso','etapa-fim'].forEach(id=>document.getElementById(id).style.display='none')
+  document.getElementById('etapa-upload').style.display='block'
+}
+
+function exportarHTML(){
+  const dadosJSON=JSON.stringify(dados)
+  const htmlAtual=document.documentElement.outerHTML
+  const htmlComDados=htmlAtual.replace(
+    "let dados=JSON.parse(localStorage.getItem(CHAVE)||'[]')",
+    'let dados='+dadosJSON
+  )
+  const blob=new Blob([htmlComDados],{type:'text/html'})
+  const a=document.createElement('a')
+  a.href=URL.createObjectURL(blob)
+  a.download='AcosVital_Advertencias_'+new Date().toISOString().split('T')[0]+'.html'
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+function fmtData(s){if(!s)return'';const[y,m,d]=s.split('-');return`${d}/${m}/${y}`}
+function toISO(val){
+  if(!val)return null
+  if(typeof val==='string'){const p=val.trim().split('/');if(p.length===3)return`${p[2].padStart(4,'0')}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;return null}
+  if(typeof val==='number')return new Date(Math.round((val-25569)*86400*1000)).toISOString().split('T')[0]
+  if(val instanceof Date)return val.toISOString().split('T')[0]
+  return null
+}
+function normTipo(val){
+  const s=String(val||'').toLowerCase().trim()
+  if(s.includes('verbal'))return'verbal'
+  if(s.includes('escrita'))return'escrita'
+  if(s.includes('suspens'))return'suspensao'
+  return null
+}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id]}}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharModalBtn()})
+popularSetoresH()
+renderDash()
+</script>
+</body>
+</html>
