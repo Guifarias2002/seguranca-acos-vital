@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+:root {
+  --azul: #0d1f3c;
+  --azul-medio: #162d52;
+  --azul-claro: #1e3a6e;
+  --laranja: #e97b2e;
+  --laranja-escuro: #c96520;
+  --cinza-bg: #f0f2f5;
+}
+
+body {
+  background: var(--cinza-bg);
+  font-family: 'Inter', sans-serif;
+}
